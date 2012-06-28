@@ -3,7 +3,7 @@ Contributors: jackdewey
 Donate link: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
 Tags: events, widget, upcoming, sidebar
 Requires at least: 3.3
-Tested up to: 3.3.1
+Tested up to: 3.4.1
 Stable tag: trunk
 
 Create a list of upcoming events and display them using an easy-to-use widget
@@ -23,6 +23,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 1. Create an instance of the Events Listing widget to display entries, configuring how many entries should be shown and how far ahead the widget should look to display entries.
 
 == Changelog ==
+
+= 1.1 =
+* Added an option to change the date format (send requests if you would like other formats)
 
 = 1.0 =
 * First version

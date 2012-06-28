@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.0
+ Version: 1.1
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -33,9 +33,9 @@ class events_listing_widget extends WP_Widget {
 
 	function form($instance) {
 	    $widget_title = ( $instance['widget_title'] != "" ? esc_html($instance['widget_title']) : 'Events Listing' );
-		$widget_lookahead = ( $instance['widget_lookahead'] != "" ? $instance['widget_lookahead'] : 3 );
-		$widget_display_count = ( $instance['widget_display_count'] != "" ? $instance['widget_display_count'] : 3 );
-		$widget_more_label = ( $instance['widget_more_label'] != "" ? $instance['widget_more_label'] : 'more' );
+            $widget_lookahead = ( $instance['widget_lookahead'] != "" ? $instance['widget_lookahead'] : 3 );
+            $widget_display_count = ( $instance['widget_display_count'] != "" ? $instance['widget_display_count'] : 3 );
+            $widget_more_label = ( $instance['widget_more_label'] != "" ? $instance['widget_more_label'] : 'more' );
 		?>
 
 		<p>
@@ -60,7 +60,7 @@ class events_listing_widget extends WP_Widget {
 			<label for="<?php echo $this->get_field_id('widget_more_label'); ?>"> <?php echo 'More text label:'; ?>			
 			<input type="text" id="<?php echo $this->get_field_id('widget_more_label'); ?>" name="<?php echo $this->get_field_name('widget_more_label'); ?>" value="<?php echo $widget_more_label; ?>" />			
 			</label>
-		</p>		
+		</p>	               
 		
 		<?php wp_reset_query(); ?>
 
@@ -68,12 +68,12 @@ class events_listing_widget extends WP_Widget {
 	}
 
 	function update($new_instance, $old_instance) {
-		$instance = $old_instance;
-		$instance['widget_title'] = strip_tags($new_instance['widget_title']);
-        $instance['widget_lookahead'] = intval(strip_tags($new_instance['widget_lookahead']));
-        $instance['widget_display_count'] = intval(strip_tags($new_instance['widget_display_count']));
-		$instance['widget_more_label'] = strip_tags($new_instance['widget_more_label']);
-		return $instance;
+            $instance = $old_instance;
+            $instance['widget_title'] = strip_tags($new_instance['widget_title']);
+            $instance['widget_lookahead'] = intval(strip_tags($new_instance['widget_lookahead']));
+            $instance['widget_display_count'] = intval(strip_tags($new_instance['widget_display_count']));
+            $instance['widget_more_label'] = strip_tags($new_instance['widget_more_label']);
+            return $instance;
 	}
 
         function prepare_the_content($content, $ID, $more_link_text = null, $stripteaser = false) {
@@ -116,7 +116,7 @@ class events_listing_widget extends WP_Widget {
         $widget_lookahead = ( $instance['widget_lookahead'] != "" ? $instance['widget_lookahead'] : 3 );
         $widget_display_count = ( $instance['widget_display_count'] != "" ? $instance['widget_display_count'] : 3 );
 		$widget_more_label = ( $instance['widget_more_label'] != "" ? $instance['widget_more_label'] : "more" );
-		
+                
 		// Variables from the widget settings.
 		
 		echo $before_widget;		
@@ -126,17 +126,29 @@ class events_listing_widget extends WP_Widget {
                 // Execution of post query
 
                 global $wpdb;
+                
+                $options = get_option('events_listing_Options');
+                
+                switch ($options['date_format'])
+                {
+                    case 'YYYY-MM-DD':
+                        $phpformatstring = "Y-m-d";
+                    break;
+                    case 'DD/MM/YYYY':
+                        $phpformatstring = "d/m/Y";
+                    break;
+                }
 
-                $query = "SELECT *, str_to_date(meta_value, '%Y-%m-%d') as event_date 
+                $query = "SELECT *, meta_value as event_date 
                                         FROM $wpdb->posts wposts, $wpdb->postmeta wpostmeta 
                                         WHERE wposts.ID = wpostmeta.post_id 
                                         AND wpostmeta.meta_key = 'events_listing_date' 
                                         AND wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
-                                        AND str_to_date(meta_value, '%Y-%m-%d') >= '" . date('Y-m-d') . "' AND str_to_date(meta_value, '%Y-%m-%d') < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
+                                        AND FROM_UNIXTIME(meta_value) >= '" . date('Y-m-d') . "' AND FROM_UNIXTIME(meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
                                         ORDER BY event_date ASC
                                         LIMIT 0, " . $widget_display_count;
-
+                
                 $events = $wpdb->get_results($query, ARRAY_A);
 
                 // Check if any posts were returned by query
@@ -150,7 +162,7 @@ class events_listing_widget extends WP_Widget {
                                 echo "'>";
                                 echo get_the_title($event['ID']);
                                 echo "</a></div>";
-                                echo "<div class='events-listing-date'>" . $event['event_date'] . "</div>";
+                                echo "<div class='events-listing-date'>" . date($phpformatstring, $event['event_date']) . "</div>";
                                 echo "<div class='events-listing-content'>" . $this->prepare_the_content($event['post_content'], $event['ID'], $widget_more_label) . "</div>";
                                 echo "</div>";
                         endforeach;
@@ -205,13 +217,30 @@ add_action('admin_init', 'events_listing_admin_init');
 function events_listing_admin_init()
 {
     add_meta_box('events_listing_details_meta_box', 'Event Details', 'events_listing_display_meta_box', 'events_listing', 'normal', 'high');
+    add_action('admin_post_save_events_listing_options', 'process_events_listing_options');
 }
 
 function events_listing_display_meta_box($event_listing)
 { 
+    $options = get_option('events_listing_Options');
+    
+    switch ($options['date_format'])
+    {
+        case 'YYYY-MM-DD':
+            $phpformatstring = "Y-m-d";
+            $datepickerformatstring = "yy-mm-dd";
+            break;
+        case 'DD/MM/YYYY':
+            $phpformatstring = "d/m/Y";
+            $datepickerformatstring = "dd/mm/yy";
+            break;
+    }
+    
+    //echo "Post Meta" . get_post_meta($event_listing->ID, 'events_listing_date', true);
+    
     // Retrieve current author and rating based on book review ID
-    $eventdate = esc_html(get_post_meta($event_listing->ID, 'events_listing_date', true));
-	if ($eventdate == "") $eventdate = date('Y-m-d');
+    $eventdate = date($phpformatstring, intval(get_post_meta($event_listing->ID, 'events_listing_date', true)));
+	if ($eventdate == "") $eventdate = date($phpformatstring);
     ?>
     <table>
         <tr>
@@ -222,7 +251,7 @@ function events_listing_display_meta_box($event_listing)
 	
 	<script type='text/javascript'>
 		jQuery(document).ready(function() {
-		jQuery('#events_listing_date').datepicker({minDate: '+0', dateFormat: 'yy-mm-dd', showOn: 'both', constrainInput: true, buttonImage: '<?php echo plugins_url("/images/calendar.png", __FILE__); ?>'}) });
+		jQuery('#events_listing_date').datepicker({minDate: '+0', dateFormat: '<?php echo $datepickerformatstring; ?>', showOn: 'both', constrainInput: true, buttonImage: '<?php echo plugins_url("/images/calendar.png", __FILE__); ?>'}) });
 	</script>
 <?php }
 
@@ -240,17 +269,30 @@ add_action('save_post', 'save_events_listing_fields', 10, 2);
 
 function save_events_listing_fields($ID = false, $book_review = false)
 {
+    $options = get_option('events_listing_Options');
+    
+    switch ($options['date_format'])
+    {
+        case 'YYYY-MM-DD':
+            $phpformatstring = "Y-m-d";
+            break;
+        case 'DD/MM/YYYY':
+            $phpformatstring = "d/m/Y";
+            break;
+    }
+    
     // Check post type for book reviews
     if ($book_review->post_type == 'events_listing')
     {
         // Store data in post meta table if present in post data
         if (isset($_POST['events_listing_date']) && $_POST['events_listing_date'] != '')
         {
-            update_post_meta($ID, "events_listing_date", $_POST['events_listing_date']);
+            $swapslashes = str_replace("/", "-", $_POST['events_listing_date']);
+            update_post_meta($ID, "events_listing_date", strtotime($swapslashes));
         }
         else
         {
-            update_post_meta($ID, "events_listing_date", date('Y-m-d'));
+            update_post_meta($ID, "events_listing_date", strtotime("now"));
         }
        
     }
@@ -287,12 +329,24 @@ add_action("manage_posts_custom_column", "events_listing_populate_columns");
 function events_listing_populate_columns($column)
 {
     global $post;
+    
+    $options = get_option('events_listing_Options');
+    
+    switch ($options['date_format'])
+    {
+        case 'YYYY-MM-DD':
+            $phpformatstring = "Y-m-d";
+            break;
+        case 'DD/MM/YYYY':
+            $phpformatstring = "d/m/Y";
+            break;
+    }
    
     // Check column name and send back appropriate data
     if ("events_listing_date" == $column)
     {
         $events_listing_date = esc_html(get_post_meta(get_the_ID(), 'events_listing_date', true));
-        echo $events_listing_date;
+        echo date($phpformatstring, $events_listing_date);
     }
 }
 
@@ -321,4 +375,164 @@ function events_listing_column_ordering( $vars ) {
     return $vars;
 }
 
+global $optionspage;
+
+register_activation_hook(__FILE__, 'events_listing_activation');
+
+function events_listing_activation() {
+    if (get_option('events_listing_Options') === false) {
+        $NewOptions['date_format'] = "YYYY-MM-DD";
+        add_option('events_listing_Options', $NewOptions);
+        
+        global $wpdb;
+        
+        $olddates = $wpdb->get_results("select * from " .
+                $wpdb->get_blog_prefix() .
+                "postmeta where meta_key = 'events_listing_date'", ARRAY_A);
+        
+        if ($olddates)
+        {
+            foreach ($olddates as $olddate)
+            {
+                $query = "update " . $wpdb->get_blog_prefix() .
+                        "postmeta set meta_value = " . 
+                        strtotime($olddate['meta_value']) . " where meta_id = ".
+                        $olddate['meta_id'] . " and post_id = " .
+                        $olddate['post_id'] . " and meta_key = 'events_listing_date'";
+                
+                $wpdb->query($query);
+            }
+        }
+    }
+}
+
+add_action('admin_menu', 'Ch3DOA_settings_menu');
+
+function Ch3DOA_settings_menu()
+{
+    global $optionspage;
+    
+    $optionspage = add_options_page('Events Listing Widget Configuration', 'Events Listing Widget', 'manage_options', 'events_listing_config', 'events_listing_config_page');
+    
+    if ($optionspage)
+        add_action( 'load-' . $optionspage, 'Ch3DOA_create_meta_boxes' );
+}
+
+function Ch3DOA_create_meta_boxes()
+{    
+    global $optionspage;
+    wp_enqueue_script('common');
+    wp_enqueue_script('wp-lists');
+    wp_enqueue_script('postbox');
+    
+    add_meta_box('events_listing_general_meta_box', 'General Settings', 'events_listing_plugin_meta_box', $optionspage, 'normal', 'core');    
+}
+
+function events_listing_config_page() {
+    // Retrieve plugin configuration options from database
+    $options = get_option('events_listing_Options');
+    global $optionspage;
+    ?>
+	<div id="events-listing-general" class="wrap">
+	<h2>Events Listing Widget Configuration</h2>
+        
+	<form action="admin-post.php" method="post">
+        <input type="hidden" name="action" value="save_events_listing_options" />
+        
+        <!-- Adding security through hidden referrer field -->
+        <?php wp_nonce_field('events_listing'); ?>
+        
+        <!-- Security fields for meta box save processing -->
+        <?php wp_nonce_field('closedpostboxes', 'closedpostboxesnonce', false ); ?>
+        <?php wp_nonce_field('meta-box-order', 'meta-box-order-nonce', false ); ?>
+
+        <div id="poststuff" class="metabox-holder">
+        <div id="post-body">
+            <div id="post-body-content">
+                <?php do_meta_boxes($optionspage, 'normal', $options); ?>
+                <input type="submit" value="Submit" class="button-primary"/>	
+            </div>
+        </div>
+        <br class="clear"/>
+        </div>	
+        </form>
+        </div>
+<script type="text/javascript">
+        //<![CDATA[
+        jQuery(document).ready( function($) {
+            
+                // close postboxes that should be closed
+                $('.if-js-closed').removeClass('if-js-closed').addClass('closed');
+                
+                // postboxes setup
+                postboxes.add_postbox_toggles('<?php echo $optionspage; ?>');
+        });
+        //]]>
+</script>
+		
+<?php }
+
+function events_listing_plugin_meta_box($options)
+{ 
+    ?>
+    Date Format: 
+        <?php $dateoptions = array('YYYY-MM-DD', 'DD/MM/YYYY' ); ?>
+            <select id="date_format" name="date_format">
+            <?php foreach ($dateoptions as $dateoption): 
+                if ($options['date_format'] == $dateoption)
+                    $selected = "selected='selected'";
+                else
+                    $selected = "";
+                ?>
+                <option id="<?php echo $dateoption; ?>" <?php echo $selected; ?>><?php echo $dateoption; ?></option>
+            <?php endforeach; ?>
+            </select>			
+        </label>
+    
+<?php }
+
+function process_events_listing_options() {
+        // Check that user has proper security level
+        if ( !current_user_can('manage_options') )
+                wp_die( 'Not allowed' );
+        
+        // Check that nonce field created in configuration form
+        // is present
+        check_admin_referer('events_listing');
+
+        // Retrieve original plugin options array
+        $options = get_option('events_listing_Options');
+
+        // Cycle through all text form fields and store their values
+        // in the options array
+        foreach (array('date_format') as $option_name) {
+            if (isset($_POST[$option_name])) {
+                    $options[$option_name] = $_POST[$option_name];
+            }
+        }
+
+        // Store updated options array to database
+        update_option('events_listing_Options', $options);
+
+        // Redirect the page to the configuration form that was
+        // processed
+        wp_redirect(events_listing_remove_querystring_var($_POST['_wp_http_referer'], 'message') . '&message=1');
+}
+
+function events_listing_remove_querystring_var($url, $key)
+{ 
+    $keypos = strpos($url, $key);
+    if ($keypos)
+    {
+            $ampersandpos = strpos($url, '&', $keypos);
+            $newurl = substr($url, 0, $keypos - 1);
+
+            if ($ampersandpos)
+                    $newurl .= substr($url, $ampersandpos);
+    }
+    else
+            $newurl = $url;
+
+    return $newurl; 
+}
 ?>
