@@ -24,6 +24,11 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.1.1 =
+* Added new field to store event URL
+* Widget will attach event URL to event name if present, instead of event page
+* New options to specify text / HTML to be displayed before and after date
+
 = 1.1 =
 * Added an option to change the date format (send requests if you would like other formats)
 

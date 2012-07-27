@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1
+ Version: 1.1.1
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -139,13 +139,15 @@ class events_listing_widget extends WP_Widget {
                     break;
                 }
 
-                $query = "SELECT *, meta_value as event_date 
-                                        FROM $wpdb->posts wposts, $wpdb->postmeta wpostmeta 
-                                        WHERE wposts.ID = wpostmeta.post_id 
-                                        AND wpostmeta.meta_key = 'events_listing_date' 
+                $query = "SELECT *, wpostmetadate.meta_value as event_date, wpostmetaurl.meta_value as event_url 
+                                        FROM $wpdb->posts wposts, $wpdb->postmeta wpostmetadate, $wpdb->postmeta wpostmetaurl
+                                        WHERE wposts.ID = wpostmetadate.post_id 
+                                        AND wpostmetadate.meta_key = 'events_listing_date' 
+                                        AND wposts.ID = wpostmetaurl.post_id
+                                        AND wpostmetaurl.meta_key = 'events_listing_url' 
                                         AND wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
-                                        AND FROM_UNIXTIME(meta_value) >= '" . date('Y-m-d') . "' AND FROM_UNIXTIME(meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
+                                        AND FROM_UNIXTIME(wpostmetadate.meta_value) >= '" . date('Y-m-d') . "' AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
                                         ORDER BY event_date ASC
                                         LIMIT 0, " . $widget_display_count;
                 
@@ -156,15 +158,18 @@ class events_listing_widget extends WP_Widget {
                 {
                         // Cycle through all items retrieved
                         foreach ($events as $event):
-                                echo "<div class='events-listing'>";
-                                echo "<div class='events-listing-title'><a href='";
-                                echo get_permalink($event['ID']);
-                                echo "'>";
+                                echo '<div class="events-listing">';
+                                echo '<div class="events-listing-title"><a href="';
+                                if ( !empty( $event['event_url'] ) )
+                                    echo $event['event_url'];
+                                else
+                                    echo get_permalink($event['ID']);
+                                echo '" target="_blank" >';
                                 echo get_the_title($event['ID']);
-                                echo "</a></div>";
-                                echo "<div class='events-listing-date'>" . date($phpformatstring, $event['event_date']) . "</div>";
-                                echo "<div class='events-listing-content'>" . $this->prepare_the_content($event['post_content'], $event['ID'], $widget_more_label) . "</div>";
-                                echo "</div>";
+                                echo '</a></div>';
+                                echo '<div class="events-listing-date">' . $options['before_date'] . date($phpformatstring, $event['event_date']) . $options['after_date'] . '</div>';
+                                echo '<div class="events-listing-content">' . $this->prepare_the_content($event['post_content'], $event['ID'], $widget_more_label) . '</div>';
+                                echo '</div>';
                         endforeach;
 
                         // Reset post data query
@@ -240,12 +245,17 @@ function events_listing_display_meta_box($event_listing)
     
     // Retrieve current author and rating based on book review ID
     $eventdate = date($phpformatstring, intval(get_post_meta($event_listing->ID, 'events_listing_date', true)));
-	if ($eventdate == "") $eventdate = date($phpformatstring);
+	if ( $eventdate == "" ) $eventdate = date( $phpformatstring );
+    $eventurl = esc_html( get_post_meta( $event_listing->ID, 'events_listing_url', true ) );
     ?>
     <table>
         <tr>
             <td style="width: 100px">Event Date</td>
             <td><input type='text' size='20' id='events_listing_date' name='events_listing_date' value='<?php echo $eventdate; ?>' /></td>
+        </tr>
+        <tr>
+            <td style="width: 100px">Event URL</td>
+            <td><input type='text' size='60' id='events_listing_url' name='events_listing_url' value='<?php echo $eventurl; ?>' /></td>
         </tr>
 	</table>
 	
@@ -267,7 +277,7 @@ function events_listing_enqueue_admin_scripts()
 // The function will receive 2 arguments
 add_action('save_post', 'save_events_listing_fields', 10, 2);
 
-function save_events_listing_fields($ID = false, $book_review = false)
+function save_events_listing_fields($ID = false, $event_listing = false)
 {
     $options = get_option('events_listing_Options');
     
@@ -282,7 +292,7 @@ function save_events_listing_fields($ID = false, $book_review = false)
     }
     
     // Check post type for book reviews
-    if ($book_review->post_type == 'events_listing')
+    if ($event_listing->post_type == 'events_listing')
     {
         // Store data in post meta table if present in post data
         if (isset($_POST['events_listing_date']) && $_POST['events_listing_date'] != '')
@@ -293,6 +303,11 @@ function save_events_listing_fields($ID = false, $book_review = false)
         else
         {
             update_post_meta($ID, "events_listing_date", strtotime("now"));
+        }
+        
+        if ( !empty( $_POST['events_listing_url'] ) )
+        {
+            update_post_meta( $ID, "events_listing_url", $_POST['events_listing_url'] );
         }
        
     }
@@ -381,7 +396,9 @@ register_activation_hook(__FILE__, 'events_listing_activation');
 
 function events_listing_activation() {
     if (get_option('events_listing_Options') === false) {
-        $NewOptions['date_format'] = "YYYY-MM-DD";
+        $NewOptions['date_format'] = 'YYYY-MM-DD';
+        $NewOptions['before_date'] = '';
+        $NewOptions['after_date'] = '';
         add_option('events_listing_Options', $NewOptions);
         
         global $wpdb;
@@ -475,7 +492,10 @@ function events_listing_config_page() {
 function events_listing_plugin_meta_box($options)
 { 
     ?>
-    Date Format: 
+    <table>
+        <tr>
+            <td style="width: 100px">Date Format</td>
+            <td>
         <?php $dateoptions = array('YYYY-MM-DD', 'DD/MM/YYYY' ); ?>
             <select id="date_format" name="date_format">
             <?php foreach ($dateoptions as $dateoption): 
@@ -487,7 +507,18 @@ function events_listing_plugin_meta_box($options)
                 <option id="<?php echo $dateoption; ?>" <?php echo $selected; ?>><?php echo $dateoption; ?></option>
             <?php endforeach; ?>
             </select>			
-        </label>
+        </label></td>               
+        </tr>
+        <tr>
+            <td>Before Date</td>
+            <td><input type="text" size="30" id="before_date" name="before_date" value="<?php echo $options['before_date']; ?>" /></td>
+        </tr>
+        <tr>
+            <td>After Date</td>
+            <td><input type="text" size="30" id="after_date" name="after_date" value="<?php echo $options['after_date']; ?>" /></td>
+        </tr>
+        
+    </table>
     
 <?php }
 
@@ -505,7 +536,7 @@ function process_events_listing_options() {
 
         // Cycle through all text form fields and store their values
         // in the options array
-        foreach (array('date_format') as $option_name) {
+        foreach (array('date_format', 'before_date', 'after_date') as $option_name) {
             if (isset($_POST[$option_name])) {
                     $options[$option_name] = $_POST[$option_name];
             }
