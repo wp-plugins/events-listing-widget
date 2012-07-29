@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1.1
+ Version: 1.1.2
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -114,7 +114,7 @@ class events_listing_widget extends WP_Widget {
 		extract($args);
 		$widget_title = esc_html($instance['widget_title']);
         $widget_lookahead = ( $instance['widget_lookahead'] != "" ? $instance['widget_lookahead'] : 3 );
-        $widget_display_count = ( $instance['widget_display_count'] != "" ? $instance['widget_display_count'] : 3 );
+        $widget_display_count = ( !empty( $instance['widget_display_count'] ) ? $instance['widget_display_count'] : 3 );
 		$widget_more_label = ( $instance['widget_more_label'] != "" ? $instance['widget_more_label'] : "more" );
                 
 		// Variables from the widget settings.
@@ -132,12 +132,20 @@ class events_listing_widget extends WP_Widget {
                 switch ($options['date_format'])
                 {
                     case 'YYYY-MM-DD':
-                        $phpformatstring = "Y-m-d";
+                        $phpformatstring = 'Y-m-d';
                     break;
                     case 'DD/MM/YYYY':
-                        $phpformatstring = "d/m/Y";
+                        $phpformatstring = 'd/m/Y';
+                    break;
+                    case 'MM-DD-YYYY':
+                        $phpformatstring = 'm-d-Y';
                     break;
                 }
+                
+                $wp_date = current_time( 'mysql' );
+                $space_pos = strpos( $wp_date, ' ' );
+                if ( $space_pos != FALSE )
+                    $wp_date = substr( $wp_date, 0, $space_pos ) . ' 00:00:00';
 
                 $query = "SELECT *, wpostmetadate.meta_value as event_date, wpostmetaurl.meta_value as event_url 
                                         FROM $wpdb->posts wposts, $wpdb->postmeta wpostmetadate, $wpdb->postmeta wpostmetaurl
@@ -147,7 +155,7 @@ class events_listing_widget extends WP_Widget {
                                         AND wpostmetaurl.meta_key = 'events_listing_url' 
                                         AND wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
-                                        AND FROM_UNIXTIME(wpostmetadate.meta_value) >= '" . date('Y-m-d') . "' AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
+                                        AND wpostmetadate.meta_value >= UNIX_TIMESTAMP('" . $wp_date . "') AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
                                         ORDER BY event_date ASC
                                         LIMIT 0, " . $widget_display_count;
                 
@@ -159,14 +167,19 @@ class events_listing_widget extends WP_Widget {
                         // Cycle through all items retrieved
                         foreach ($events as $event):
                                 echo '<div class="events-listing">';
-                                echo '<div class="events-listing-title"><a href="';
-                                if ( !empty( $event['event_url'] ) )
-                                    echo $event['event_url'];
-                                else
-                                    echo get_permalink($event['ID']);
-                                echo '" target="_blank" >';
+                                echo '<div class="events-listing-title">';
+                                if ( $options['event_title_hyperlinks'] == 'true' ) {
+                                    echo '<a href="';
+                                    if ( !empty( $event['event_url'] ) )
+                                        echo $event['event_url'];
+                                    else
+                                        echo get_permalink($event['ID']);
+                                    echo '" target="_blank" >';
+                                }
                                 echo get_the_title($event['ID']);
-                                echo '</a></div>';
+                                if ( $options['event_title_hyperlinks'] )
+                                    echo '</a>';
+                                echo '</div>';
                                 echo '<div class="events-listing-date">' . $options['before_date'] . date($phpformatstring, $event['event_date']) . $options['after_date'] . '</div>';
                                 echo '<div class="events-listing-content">' . $this->prepare_the_content($event['post_content'], $event['ID'], $widget_more_label) . '</div>';
                                 echo '</div>';
@@ -239,9 +252,10 @@ function events_listing_display_meta_box($event_listing)
             $phpformatstring = "d/m/Y";
             $datepickerformatstring = "dd/mm/yy";
             break;
+        case 'MM-DD-YYYY':
+            $phpformatstring = 'm-d-Y';
+            $datepickerformatstring = "mm-dd-yy";
     }
-    
-    //echo "Post Meta" . get_post_meta($event_listing->ID, 'events_listing_date', true);
     
     // Retrieve current author and rating based on book review ID
     $eventdate = date($phpformatstring, intval(get_post_meta($event_listing->ID, 'events_listing_date', true)));
@@ -284,21 +298,37 @@ function save_events_listing_fields($ID = false, $event_listing = false)
     switch ($options['date_format'])
     {
         case 'YYYY-MM-DD':
-            $phpformatstring = "Y-m-d";
+            $datearray = explode('-', $_POST['events_listing_date']);
+            $year = $datearray[0];
+            $month = $datearray[1];
+            $day = $datearray[2];
             break;
         case 'DD/MM/YYYY':
-            $phpformatstring = "d/m/Y";
+            $datearray = explode('/', $_POST['events_listing_date']);
+            $year = $datearray[2];
+            $month = $datearray[1];
+            $day = $datearray[0];
+            break;
+        case 'MM-DD-YYYY':
+            $datearray = explode('-', $_POST['events_listing_date']);
+            $year = $datearray[2];
+            $month = $datearray[0];
+            $day = $datearray[1];
             break;
     }
+    
+    $timetostore = mktime(0, 0, 0, $month, $day, $year);
+    $gmt_offset = get_option('gmt_offset');
+    $timetostore -= ( $gmt_offset * 3600 );
     
     // Check post type for book reviews
     if ($event_listing->post_type == 'events_listing')
     {
         // Store data in post meta table if present in post data
-        if (isset($_POST['events_listing_date']) && $_POST['events_listing_date'] != '')
+        if (isset($_POST['events_listing_date']) && $_POST['events_listing_date'] != '' && !empty( $timetostore ) )
         {
             $swapslashes = str_replace("/", "-", $_POST['events_listing_date']);
-            update_post_meta($ID, "events_listing_date", strtotime($swapslashes));
+            update_post_meta( $ID, "events_listing_date", $timetostore );
         }
         else
         {
@@ -355,6 +385,9 @@ function events_listing_populate_columns($column)
         case 'DD/MM/YYYY':
             $phpformatstring = "d/m/Y";
             break;
+        case 'MM-DD-YYYY':
+            $phpformatstring = "m-d-Y";
+            break;
     }
    
     // Check column name and send back appropriate data
@@ -399,6 +432,7 @@ function events_listing_activation() {
         $NewOptions['date_format'] = 'YYYY-MM-DD';
         $NewOptions['before_date'] = '';
         $NewOptions['after_date'] = '';
+        $NewOptions['event_title_hyperlinks'] = true;
         add_option('events_listing_Options', $NewOptions);
         
         global $wpdb;
@@ -429,7 +463,7 @@ function Ch3DOA_settings_menu()
 {
     global $optionspage;
     
-    $optionspage = add_options_page('Events Listing Widget Configuration', 'Events Listing Widget', 'manage_options', 'events_listing_config', 'events_listing_config_page');
+    $optionspage = add_options_page('Events Listing Widget Configuration', 'Events Listing Widget', 'manage_options', 'events-listing-config', 'events_listing_config_page');
     
     if ($optionspage)
         add_action( 'load-' . $optionspage, 'Ch3DOA_create_meta_boxes' );
@@ -489,23 +523,19 @@ function events_listing_config_page() {
 		
 <?php }
 
-function events_listing_plugin_meta_box($options)
-{ 
+function events_listing_plugin_meta_box( $options ) { 
+    if ( $options['event_title_hyperlinks'] == '')
+        $options['event_title_hyperlinks'] = 'true';
     ?>
     <table>
         <tr>
             <td style="width: 100px">Date Format</td>
             <td>
-        <?php $dateoptions = array('YYYY-MM-DD', 'DD/MM/YYYY' ); ?>
+        <?php $dateoptions = array('YYYY-MM-DD', 'DD/MM/YYYY', 'MM-DD-YYYY' ); ?>
             <select id="date_format" name="date_format">
-            <?php foreach ($dateoptions as $dateoption): 
-                if ($options['date_format'] == $dateoption)
-                    $selected = "selected='selected'";
-                else
-                    $selected = "";
-                ?>
-                <option id="<?php echo $dateoption; ?>" <?php echo $selected; ?>><?php echo $dateoption; ?></option>
-            <?php endforeach; ?>
+            <?php foreach ($dateoptions as $dateoption) { ?>
+                <option id="<?php echo $dateoption; ?>" <?php selected( $options['date_format'], $dateoption ); ?>><?php echo $dateoption; ?></option>
+            <?php } ?>
             </select>			
         </label></td>               
         </tr>
@@ -517,7 +547,10 @@ function events_listing_plugin_meta_box($options)
             <td>After Date</td>
             <td><input type="text" size="30" id="after_date" name="after_date" value="<?php echo $options['after_date']; ?>" /></td>
         </tr>
-        
+        <tr>
+            <td>Make event titles clickable</td>
+            <td><input type="checkbox" id="event_title_hyperlinks" name="event_title_hyperlinks" <?php checked( $options['event_title_hyperlinks'], 'true' ); ?> /></td>
+        </tr>        
     </table>
     
 <?php }
@@ -541,29 +574,21 @@ function process_events_listing_options() {
                     $options[$option_name] = $_POST[$option_name];
             }
         }
+        
+        foreach ( array( 'event_title_hyperlinks' ) as $option_name ) {
+			if ( isset( $_POST[$option_name] ) ) {
+				$options[$option_name] = 'true';
+			} else {
+				$options[$option_name] = 'false';
+			}
+		}
 
         // Store updated options array to database
         update_option('events_listing_Options', $options);
 
         // Redirect the page to the configuration form that was
         // processed
-        wp_redirect(events_listing_remove_querystring_var($_POST['_wp_http_referer'], 'message') . '&message=1');
+        wp_redirect( add_query_arg( array( 'message' => '1', 'page' => 'events-listing-config'), admin_url( 'options-general.php' ) ) );
 }
 
-function events_listing_remove_querystring_var($url, $key)
-{ 
-    $keypos = strpos($url, $key);
-    if ($keypos)
-    {
-            $ampersandpos = strpos($url, '&', $keypos);
-            $newurl = substr($url, 0, $keypos - 1);
-
-            if ($ampersandpos)
-                    $newurl .= substr($url, $ampersandpos);
-    }
-    else
-            $newurl = $url;
-
-    return $newurl; 
-}
 ?>
