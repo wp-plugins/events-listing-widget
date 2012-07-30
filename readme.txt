@@ -24,6 +24,10 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.1.3 =
+* Fixed problem with events not being displayed if they did not have hyperlinks associated with them
+* Fixed further problems with event removal time
+
 = 1.1.2 =
 * Fixed problem with events being removed from listing at wrong time
 * Added new date format MM-DD-YYYY

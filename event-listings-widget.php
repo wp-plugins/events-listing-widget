@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1.2
+ Version: 1.1.3
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -142,30 +142,36 @@ class events_listing_widget extends WP_Widget {
                     break;
                 }
                 
-                $wp_date = current_time( 'mysql' );
-                $space_pos = strpos( $wp_date, ' ' );
-                if ( $space_pos != FALSE )
-                    $wp_date = substr( $wp_date, 0, $space_pos ) . ' 00:00:00';
-
-                $query = "SELECT *, wpostmetadate.meta_value as event_date, wpostmetaurl.meta_value as event_url 
-                                        FROM $wpdb->posts wposts, $wpdb->postmeta wpostmetadate, $wpdb->postmeta wpostmetaurl
-                                        WHERE wposts.ID = wpostmetadate.post_id 
-                                        AND wpostmetadate.meta_key = 'events_listing_date' 
-                                        AND wposts.ID = wpostmetaurl.post_id
-                                        AND wpostmetaurl.meta_key = 'events_listing_url' 
-                                        AND wposts.post_type = 'events_listing' 
+                $query = "SELECT *, DATE(FROM_UNIXTIME(wpostmetadate.meta_value)) as formatted_date, wpostmetadate.meta_value as event_date, wpostmetaurl.meta_value as event_url 
+                                        FROM $wpdb->posts wposts LEFT JOIN $wpdb->postmeta wpostmetadate ON ( wposts.ID = wpostmetadate.post_id 
+                                        AND wpostmetadate.meta_key = 'events_listing_date') LEFT JOIN $wpdb->postmeta wpostmetaurl ON ( wposts.ID = wpostmetaurl.post_id 
+                                        AND wpostmetaurl.meta_key = 'events_listing_url' ) 
+                                        WHERE wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
-                                        AND wpostmetadate.meta_value >= UNIX_TIMESTAMP('" . $wp_date . "') AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
                                         ORDER BY event_date ASC
                                         LIMIT 0, " . $widget_display_count;
                 
+                
                 $events = $wpdb->get_results($query, ARRAY_A);
-
+                
                 // Check if any posts were returned by query
                 if ( $events )
                 {
+                        $site_full_date = current_time( 'mysql' );
+                        $space_pos = strpos( $site_full_date, ' ' );
+                        if ( $space_pos !== false) {
+                            $short_site_date = substr( $site_full_date, 0, $space_pos );
+                            $datearray = explode( '-', $short_site_date );
+                            $year = $datearray[0];
+                            $month = $datearray[1];
+                            $day = $datearray[2];
+                            $site_date = gmmktime(0, 0, 0, $month, $day, $year);
+                        }
+
                         // Cycle through all items retrieved
-                        foreach ($events as $event):
+                        foreach ($events as $event) {
+
+                            if ( $event['event_date'] >= $site_date ) {
                                 echo '<div class="events-listing">';
                                 echo '<div class="events-listing-title">';
                                 if ( $options['event_title_hyperlinks'] == 'true' ) {
@@ -183,7 +189,8 @@ class events_listing_widget extends WP_Widget {
                                 echo '<div class="events-listing-date">' . $options['before_date'] . date($phpformatstring, $event['event_date']) . $options['after_date'] . '</div>';
                                 echo '<div class="events-listing-content">' . $this->prepare_the_content($event['post_content'], $event['ID'], $widget_more_label) . '</div>';
                                 echo '</div>';
-                        endforeach;
+                            }
+                        }
 
                         // Reset post data query
                         wp_reset_postdata();
@@ -317,9 +324,7 @@ function save_events_listing_fields($ID = false, $event_listing = false)
             break;
     }
     
-    $timetostore = mktime(0, 0, 0, $month, $day, $year);
-    $gmt_offset = get_option('gmt_offset');
-    $timetostore -= ( $gmt_offset * 3600 );
+    $timetostore = gmmktime(0, 0, 0, $month, $day, $year);
     
     // Check post type for book reviews
     if ($event_listing->post_type == 'events_listing')
