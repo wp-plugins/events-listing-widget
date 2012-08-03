@@ -148,6 +148,7 @@ class events_listing_widget extends WP_Widget {
                                         AND wpostmetaurl.meta_key = 'events_listing_url' ) 
                                         WHERE wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
+                                        AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
                                         ORDER BY event_date ASC
                                         LIMIT 0, " . $widget_display_count;
                 
@@ -296,39 +297,37 @@ function events_listing_enqueue_admin_scripts()
 
 // Register function to be called when posts are saved
 // The function will receive 2 arguments
-add_action('save_post', 'save_events_listing_fields', 10, 2);
+add_action( 'save_post', 'save_events_listing_fields', 10, 2 );
 
-function save_events_listing_fields($ID = false, $event_listing = false)
-{
-    $options = get_option('events_listing_Options');
-    
-    switch ($options['date_format'])
-    {
-        case 'YYYY-MM-DD':
-            $datearray = explode('-', $_POST['events_listing_date']);
-            $year = $datearray[0];
-            $month = $datearray[1];
-            $day = $datearray[2];
-            break;
-        case 'DD/MM/YYYY':
-            $datearray = explode('/', $_POST['events_listing_date']);
-            $year = $datearray[2];
-            $month = $datearray[1];
-            $day = $datearray[0];
-            break;
-        case 'MM-DD-YYYY':
-            $datearray = explode('-', $_POST['events_listing_date']);
-            $year = $datearray[2];
-            $month = $datearray[0];
-            $day = $datearray[1];
-            break;
-    }
-    
-    $timetostore = gmmktime(0, 0, 0, $month, $day, $year);
-    
-    // Check post type for book reviews
-    if ($event_listing->post_type == 'events_listing')
-    {
+function save_events_listing_fields( $ID = false, $event_listing = false ) {
+    if ( isset( $_POST['post_title'] ) && $event_listing->post_type == 'events_listing') {
+        $options = get_option('events_listing_Options');
+
+        switch ($options['date_format'])
+        {
+            case 'YYYY-MM-DD':
+                $datearray = explode('-', $_POST['events_listing_date']);
+                $year = $datearray[0];
+                $month = $datearray[1];
+                $day = $datearray[2];
+                break;
+            case 'DD/MM/YYYY':
+                $datearray = explode('/', $_POST['events_listing_date']);
+                $year = $datearray[2];
+                $month = $datearray[1];
+                $day = $datearray[0];
+                break;
+            case 'MM-DD-YYYY':
+                $datearray = explode('-', $_POST['events_listing_date']);
+                $year = $datearray[2];
+                $month = $datearray[0];
+                $day = $datearray[1];
+                break;
+        }
+
+        $timetostore = gmmktime(0, 0, 0, $month, $day, $year);
+
+        // Check post type for book reviews
         // Store data in post meta table if present in post data
         if (isset($_POST['events_listing_date']) && $_POST['events_listing_date'] != '' && !empty( $timetostore ) )
         {
@@ -339,12 +338,11 @@ function save_events_listing_fields($ID = false, $event_listing = false)
         {
             update_post_meta($ID, "events_listing_date", strtotime("now"));
         }
-        
+
         if ( !empty( $_POST['events_listing_url'] ) )
         {
             update_post_meta( $ID, "events_listing_url", $_POST['events_listing_url'] );
         }
-       
     }
 }
 
