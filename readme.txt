@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.1.5 =
+* Fixed two notices about undefined variables
+
 = 1.1.4 =
 * Fixed gmmktime function error displayed when creating new events, new posts and new pages
 * Restored cut-off period after n number of months
