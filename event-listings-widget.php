@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1.5
+ Version: 1.1.6
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -151,8 +151,7 @@ class events_listing_widget extends WP_Widget {
                                         WHERE wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
                                         AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date('Y-m-d', strtotime($widget_lookahead . 'months')) . "' 
-                                        ORDER BY event_date ASC
-                                        LIMIT 0, " . $widget_display_count;
+                                        ORDER BY event_date ASC";
                 
                 
                 $events = $wpdb->get_results($query, ARRAY_A);
@@ -170,6 +169,7 @@ class events_listing_widget extends WP_Widget {
                             $day = $datearray[2];
                             $site_date = gmmktime(0, 0, 0, $month, $day, $year);
                         }
+                        $counter = 0;
 
                         // Cycle through all items retrieved
                         foreach ($events as $event) {
@@ -192,6 +192,13 @@ class events_listing_widget extends WP_Widget {
                                 echo '<div class="events-listing-date">' . $options['before_date'] . date($phpformatstring, $event['event_date']) . $options['after_date'] . '</div>';
                                 echo '<div class="events-listing-content">' . $this->prepare_the_content($event['post_content'], $event['ID'], $widget_more_label) . '</div>';
                                 echo '</div>';
+
+                                if ( !empty( $widget_display_count ) ) {
+                                     $counter++;
+                                     if ( $counter == $widget_display_count )
+                                          break;
+                                }
+
                             }
                         }
 

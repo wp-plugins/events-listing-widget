@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.1.6 =
+* Fixes problem with disappearing events when too many are created
+
 = 1.1.5 =
 * Fixed two notices about undefined variables
 
