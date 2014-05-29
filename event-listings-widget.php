@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1.7
+ Version: 1.1.8
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -243,7 +243,39 @@ function my_events_listing_post_type_init() {
 		'supports' => array('title','editor','author')
 	);
 	register_post_type('events_listing',$options);
+
+    add_shortcode( 'events-listing-date', 'events_listing_event_date_shortcode' );
+    add_shortcode( 'events-listing-name', 'events_listing_event_name_shortcode' );
+    add_shortcode( 'events-listing-url', 'events_listing_event_url_shortcode' );
 }
+
+function events_listing_event_date_shortcode() {
+
+    $options = get_option('events_listing_Options');
+
+    switch ($options['date_format'])
+    {
+        case 'YYYY-MM-DD':
+            $phpformatstring = "Y-m-d";
+            break;
+        case 'DD/MM/YYYY':
+            $phpformatstring = "d/m/Y";
+            break;
+        case 'MM-DD-YYYY':
+            $phpformatstring = 'm-d-Y';
+    }
+
+    return date( $phpformatstring, intval(get_post_meta( get_the_ID(), 'events_listing_date', true)));
+}
+
+function events_listing_event_name_shortcode() {
+    return get_the_title( get_the_ID() );
+}
+
+function events_listing_event_url_shortcode() {
+    return get_post_meta( get_the_ID(), 'events_listing_url', true);
+}
+
 
 // Register function to be called when admin interface is visited
 add_action('admin_init', 'events_listing_admin_init');
