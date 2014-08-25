@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1.8
+ Version: 1.1.9
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  License: GPL2
@@ -32,10 +32,10 @@ class events_listing_widget extends WP_Widget {
 	}
 
 	function form($instance) {
-	    $widget_title = ( $instance['widget_title'] != "" ? esc_html($instance['widget_title']) : 'Events Listing' );
-            $widget_lookahead = ( $instance['widget_lookahead'] != "" ? $instance['widget_lookahead'] : 3 );
-            $widget_display_count = ( $instance['widget_display_count'] != "" ? $instance['widget_display_count'] : 3 );
-            $widget_more_label = ( $instance['widget_more_label'] != "" ? $instance['widget_more_label'] : 'more' );
+	    $widget_title = ( isset( $instance['widget_title'] ) && !empty( $instance['widget_title'] )  ? esc_html($instance['widget_title']) : 'Events Listing' );
+            $widget_lookahead = ( isset( $instance['widget_lookahead'] ) && !empty( $instance['widget_lookahead'] ) ? $instance['widget_lookahead'] : 3 );
+            $widget_display_count = ( isset( $instance['widget_display_count'] ) && !empty( $instance['widget_display_count'] ) ? $instance['widget_display_count'] : 3 );
+            $widget_more_label = ( isset( $instance['widget_more_label'] ) && !empty( $instance['widget_more_label'] ) ? $instance['widget_more_label'] : 'more' );
 		?>
 
 		<p>
@@ -81,21 +81,26 @@ class events_listing_widget extends WP_Widget {
                 global $more;
                 
                 if ( null === $more_link_text )
-                        $more_link_text = __( '(more...)' );
+	                $more_link_text = __( '(more...)' );
 
                 $output = '';
 
                 if ( preg_match('/<!--more(.*?)?-->/', $content, $matches) ) {
-                        $content = explode($matches[0], $content, 2);
-                        if ( !empty($matches[1]) && !empty($more_link_text) )
-                                $more_link_text = strip_tags(wp_kses_no_null(trim($matches[1])));
+	                $content = explode($matches[0], $content, 2);
+                    if ( !empty($matches[1]) && !empty($more_link_text) )
+	                    $more_link_text = strip_tags(wp_kses_no_null(trim($matches[1])));
 
-                        $hasTeaser = true;
+	                $hasTeaser = true;
                 } else {
-                        $content = array($content);
+	                $content = array($content);
                 }
-                if ( (false !== strpos($content, '<!--noteaser-->') ) )
-                        $stripteaser = true;
+
+	            foreach ( $content as $contentelement ) {
+		            if ( ( false !== strpos( $contentelement, '<!--noteaser-->' ) ) ) {
+			            $stripteaser = true;
+			            break;
+		            }
+	            }
 
                 $teaser = $content[0];
                 if ( $more && $stripteaser && $hasTeaser )
@@ -177,7 +182,7 @@ class events_listing_widget extends WP_Widget {
                             if ( $event['event_date'] >= $site_date ) {
                                 echo '<div class="events-listing">';
                                 echo '<div class="events-listing-title">';
-                                if ( $options['event_title_hyperlinks'] == 'true' ) {
+                                if ( $options['event_title_hyperlinks']  ) {
                                     echo '<a href="';
                                     if ( !empty( $event['event_url'] ) )
                                         echo $event['event_url'];
@@ -568,8 +573,6 @@ function events_listing_config_page() {
 <?php }
 
 function events_listing_plugin_meta_box( $options ) { 
-    if ( $options['event_title_hyperlinks'] == '')
-        $options['event_title_hyperlinks'] = 'true';
     ?>
     <table>
         <tr>
@@ -593,7 +596,7 @@ function events_listing_plugin_meta_box( $options ) {
         </tr>
         <tr>
             <td>Make event titles clickable</td>
-            <td><input type="checkbox" id="event_title_hyperlinks" name="event_title_hyperlinks" <?php checked( $options['event_title_hyperlinks'], 'true' ); ?> /></td>
+            <td><input type="checkbox" id="event_title_hyperlinks" name="event_title_hyperlinks" <?php checked( $options['event_title_hyperlinks'], true ); ?> /></td>
         </tr>        
     </table>
     
@@ -621,9 +624,9 @@ function process_events_listing_options() {
         
         foreach ( array( 'event_title_hyperlinks' ) as $option_name ) {
 			if ( isset( $_POST[$option_name] ) ) {
-				$options[$option_name] = 'true';
+				$options[$option_name] = true;
 			} else {
-				$options[$option_name] = 'false';
+				$options[$option_name] = false;
 			}
 		}
 

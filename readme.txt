@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.1.9 =
+* Fixed PHP warnings
+
 = 1.1.8 =
 * Added shortcodes to display some of the data fields from the event listing ([events-listing-date],[events-listing-name], [events-listing-url])
 
