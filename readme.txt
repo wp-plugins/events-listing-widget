@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2 =
+* Adds internationalization support
+
 = 1.1.9 =
 * Fixed PHP warnings
 

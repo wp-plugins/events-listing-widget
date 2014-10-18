@@ -3,9 +3,11 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.1.9
+ Version: 1.2
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
+ Text Domain: events-listing-widget
+ Domain Path: /languages
  License: GPL2
 */
 
@@ -27,8 +29,8 @@ function events_listing_widget_load_widgets() {
 // First create the widget for the admin panel
 class events_listing_widget extends WP_Widget {
 	function events_listing_widget() {
-		$widget_ops = array( 'description' => __( 'Displays upcoming events listing in a widget', 'event-listings-widget' ) );
-		$this->WP_Widget( 'events_listing_widget', __( 'Events Listing', 'events-listings-widget' ), $widget_ops );
+		$widget_ops = array( 'description' => __( 'Displays upcoming events listing in a widget', 'events-listing-widget' ) );
+		$this->WP_Widget( 'events_listing_widget', __( 'Events Listing', 'events-listing-widget' ), $widget_ops );
 	}
 
 	function form( $instance ) {
@@ -39,25 +41,25 @@ class events_listing_widget extends WP_Widget {
 		?>
 
 		<p>
-			<label for="<?php echo $this->get_field_id( 'widget_title' ); ?>"> <?php _e( 'Widget Title', 'events-listings-widget' ); echo ':'; ?>
+			<label for="<?php echo $this->get_field_id( 'widget_title' ); ?>"> <?php _e( 'Widget Title', 'events-listing-widget' ); echo ':'; ?>
 				<input type="text" id="<?php echo $this->get_field_id( 'widget_title' ); ?>" name="<?php echo $this->get_field_name( 'widget_title' ); ?>" value="<?php echo $widget_title; ?>" />
 			</label>
 		</p>
 
 		<p>
-			<label for="<?php echo $this->get_field_id( 'widget_lookahead' ); ?>"> <?php _e( 'Number of months to display', 'event-listings-widget' ); echo ':'; ?>
+			<label for="<?php echo $this->get_field_id( 'widget_lookahead' ); ?>"> <?php _e( 'Number of months to display', 'events-listing-widget' ); echo ':'; ?>
 				<input type="text" id="<?php echo $this->get_field_id( 'widget_lookahead' ); ?>" name="<?php echo $this->get_field_name( 'widget_lookahead' ); ?>" value="<?php echo $widget_lookahead; ?>" />
 			</label>
 		</p>
 
 		<p>
-			<label for="<?php echo $this->get_field_id( 'widget_display_count' ); ?>"> <?php _e( 'Number of items to display', 'event-listings-widget' ); echo ':'; ?>
+			<label for="<?php echo $this->get_field_id( 'widget_display_count' ); ?>"> <?php _e( 'Number of items to display', 'events-listing-widget' ); echo ':'; ?>
 				<input type="text" id="<?php echo $this->get_field_id( 'widget_display_count' ); ?>" name="<?php echo $this->get_field_name( 'widget_display_count' ); ?>" value="<?php echo $widget_display_count; ?>" />
 			</label>
 		</p>
 
 		<p>
-			<label for="<?php echo $this->get_field_id( 'widget_more_label' ); ?>"> <?php _e( 'More text label', 'event-listings-widget' ); echo ':'; ?>
+			<label for="<?php echo $this->get_field_id( 'widget_more_label' ); ?>"> <?php _e( 'More text label', 'events-listing-widget' ); echo ':'; ?>
 				<input type="text" id="<?php echo $this->get_field_id( 'widget_more_label' ); ?>" name="<?php echo $this->get_field_name( 'widget_more_label' ); ?>" value="<?php echo $widget_more_label; ?>" />
 			</label>
 		</p>
@@ -226,18 +228,23 @@ class events_listing_widget extends WP_Widget {
 add_action( 'init', 'my_events_listing_post_type_init' );
 
 function my_events_listing_post_type_init() {
+	if ( is_admin() ) {
+		// Load text domain for translation of admin pages and text strings
+		load_plugin_textdomain( 'events-listing-widget', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+	}
+
 	$labels  = array(
-		'name'               => __( 'Events Listing', 'event-listings-widget' ),
-		'singular_name'      => __( 'Event', 'event-listings-widget' ),
-		'plural_name'        => __( 'Events', 'event-listings-widget' ),
-		'add_new'            => __( 'Add New Event', 'event-listings-widget' ),
-		'add_new_item'       => __( 'Add New Event', 'event-listings-widget' ),
-		'edit_item'          => __( 'Edit Event', 'event-listings-widget' ),
-		'new_item'           => __( 'New Event', 'event-listings-widget' ),
-		'view_item'          => __( 'View Event', 'event-listings-widget' ),
-		'search_items'       => __( 'Search Events', 'event-listings-widget' ),
-		'not_found'          => __( 'No Event Found', 'event-listings-widget' ),
-		'not_found_in_trash' => __( 'No Events found in Trash', 'event-listings-widget' ),
+		'name'               => __( 'Events Listing', 'events-listing-widget' ),
+		'singular_name'      => __( 'Event', 'events-listing-widget' ),
+		'plural_name'        => __( 'Events', 'events-listing-widget' ),
+		'add_new'            => __( 'Add New Event', 'events-listing-widget' ),
+		'add_new_item'       => __( 'Add New Event', 'events-listing-widget' ),
+		'edit_item'          => __( 'Edit Event', 'events-listing-widget' ),
+		'new_item'           => __( 'New Event', 'events-listing-widget' ),
+		'view_item'          => __( 'View Event', 'events-listing-widget' ),
+		'search_items'       => __( 'Search Events', 'events-listing-widget' ),
+		'not_found'          => __( 'No Event Found', 'events-listing-widget' ),
+		'not_found_in_trash' => __( 'No Events found in Trash', 'events-listing-widget' ),
 		'parent_item_colon'  => ''
 	);
 	$options = array(
@@ -258,12 +265,6 @@ function my_events_listing_post_type_init() {
 	add_shortcode( 'events-listing-date', 'events_listing_event_date_shortcode' );
 	add_shortcode( 'events-listing-name', 'events_listing_event_name_shortcode' );
 	add_shortcode( 'events-listing-url', 'events_listing_event_url_shortcode' );
-
-	if ( is_admin() ) {
-		// Load text domain for translation of admin pages and text strings
-		load_plugin_textdomain( 'event-listings-widget', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-	}
-
 }
 
 function events_listing_event_date_shortcode() {
@@ -298,7 +299,7 @@ add_action( 'admin_init', 'events_listing_admin_init' );
 
 // Function to register new meta box for book review post editor
 function events_listing_admin_init() {
-	add_meta_box( 'events_listing_details_meta_box', __( 'Event Details', 'event-listings-widget' ), 'events_listing_display_meta_box', 'events_listing', 'normal', 'high' );
+	add_meta_box( 'events_listing_details_meta_box', __( 'Event Details', 'events-listing-widget' ), 'events_listing_display_meta_box', 'events_listing', 'normal', 'high' );
 	add_action( 'admin_post_save_events_listing_options', 'process_events_listing_options' );
 }
 
@@ -328,13 +329,13 @@ function events_listing_display_meta_box( $event_listing ) {
 	?>
 	<table>
 		<tr>
-			<td style="width: 100px"><?php _e( 'Event Date', 'event-listings-widget' ); ?></td>
+			<td style="width: 100px"><?php _e( 'Event Date', 'events-listing-widget' ); ?></td>
 			<td>
 				<input type='text' size='20' id='events_listing_date' name='events_listing_date' value='<?php echo $eventdate; ?>' />
 			</td>
 		</tr>
 		<tr>
-			<td style="width: 100px"><?php _e( 'Event URL', 'event-listings-widget' ); ?></td>
+			<td style="width: 100px"><?php _e( 'Event URL', 'events-listing-widget' ); ?></td>
 			<td>
 				<input type='text' size='60' id='events_listing_url' name='events_listing_url' value='<?php echo $eventurl; ?>' />
 			</td>
@@ -423,7 +424,7 @@ add_filter( 'manage_edit-events_listing_columns', 'events_listing_add_columns' )
 // Function to add columns for author and type in book review listing
 // and remove comments columns
 function events_listing_add_columns( $columns ) {
-	$columns['events_listing_date'] = __( 'Event Date', 'event-listings-widget' );
+	$columns['events_listing_date'] = __( 'Event Date', 'events-listing-widget' );
 	unset( $columns['date'] );
 	unset( $columns['author'] );
 
@@ -520,7 +521,7 @@ add_action( 'admin_menu', 'events_listing_settings_menu' );
 function events_listing_settings_menu() {
 	global $optionspage;
 
-	$optionspage = add_options_page( __( 'Events Listing Widget Configuration', 'event-listings-widget' ), __( 'Events Listing Widget', 'event-listings-widget' ), 'manage_options', 'events-listing-config', 'events_listing_config_page' );
+	$optionspage = add_options_page( __( 'Events Listing Widget Configuration', 'events-listing-widget' ), __( 'Events Listing Widget', 'events-listing-widget' ), 'manage_options', 'events-listing-config', 'events_listing_config_page' );
 
 	if ( $optionspage ) {
 		add_action( 'load-' . $optionspage, 'events_listing_create_meta_boxes' );
@@ -533,7 +534,7 @@ function events_listing_create_meta_boxes() {
 	wp_enqueue_script( 'wp-lists' );
 	wp_enqueue_script( 'postbox' );
 
-	add_meta_box( 'events_listing_general_meta_box', __ ( 'General Settings', 'event-listings-widget' ), 'events_listing_plugin_meta_box', $optionspage, 'normal', 'core' );
+	add_meta_box( 'events_listing_general_meta_box', __ ( 'General Settings', 'events-listing-widget' ), 'events_listing_plugin_meta_box', $optionspage, 'normal', 'core' );
 }
 
 function events_listing_config_page() {
@@ -542,7 +543,7 @@ function events_listing_config_page() {
 	global $optionspage;
 	?>
 	<div id="events-listing-general" class="wrap">
-		<h2><?php _e( 'Events Listing Widget Configuration', 'event-listings-widget' ); ?></h2>
+		<h2><?php _e( 'Events Listing Widget Configuration', 'events-listing-widget' ); ?></h2>
 
 		<form action="admin-post.php" method="post">
 			<input type="hidden" name="action" value="save_events_listing_options" />
@@ -558,7 +559,7 @@ function events_listing_config_page() {
 				<div id="post-body">
 					<div id="post-body-content">
 						<?php do_meta_boxes( $optionspage, 'normal', $options ); ?>
-						<input type="submit" value="<?php _e( 'Submit', 'event-listings-widget' ); ?>" class="button-primary" />
+						<input type="submit" value="<?php _e( 'Submit', 'events-listing-widget' ); ?>" class="button-primary" />
 					</div>
 				</div>
 				<br class="clear" />
@@ -585,7 +586,7 @@ function events_listing_plugin_meta_box( $options ) {
 	?>
 	<table>
 		<tr>
-			<td style="width: 100px"><?php _e( 'Date Format', 'event-listings-widget' ); ?></td>
+			<td style="width: 100px"><?php _e( 'Date Format', 'events-listing-widget' ); ?></td>
 			<td>
 				<?php $dateoptions = array( 'YYYY-MM-DD', 'DD/MM/YYYY', 'MM-DD-YYYY' ); ?>
 				<select id="date_format" name="date_format">
@@ -596,19 +597,19 @@ function events_listing_plugin_meta_box( $options ) {
 				</label></td>
 		</tr>
 		<tr>
-			<td><?php _e( 'Before Date', 'event-listings-widget' ); ?></td>
+			<td><?php _e( 'Before Date', 'events-listing-widget' ); ?></td>
 			<td>
 				<input type="text" size="30" id="before_date" name="before_date" value="<?php echo $options['before_date']; ?>" />
 			</td>
 		</tr>
 		<tr>
-			<td><?php _e( 'After Date', 'event-listings-widget' ); ?></td>
+			<td><?php _e( 'After Date', 'events-listing-widget' ); ?></td>
 			<td>
 				<input type="text" size="30" id="after_date" name="after_date" value="<?php echo $options['after_date']; ?>" />
 			</td>
 		</tr>
 		<tr>
-			<td><?php _e( 'Make event titles clickable', 'event-listings-widget' ); ?></td>
+			<td><?php _e( 'Make event titles clickable', 'events-listing-widget' ); ?></td>
 			<td>
 				<input type="checkbox" id="event_title_hyperlinks" name="event_title_hyperlinks" <?php checked( $options['event_title_hyperlinks'], true ); ?> />
 			</td>
@@ -621,7 +622,7 @@ function events_listing_plugin_meta_box( $options ) {
 function process_events_listing_options() {
 	// Check that user has proper security level
 	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( __( 'Not allowed', 'event-listings-widget' ) );
+		wp_die( __( 'Not allowed', 'events-listing-widget' ) );
 	}
 
 	// Check that nonce field created in configuration form
