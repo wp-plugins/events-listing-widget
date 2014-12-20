@@ -24,6 +24,11 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2.1 =
+* Added new field to specify end date on events
+* Modified event display code to display event until end date has passed
+* Added shortcode to display new end date ([events-listing-end-date])
+
 = 1.2 =
 * Adds internationalization support
 

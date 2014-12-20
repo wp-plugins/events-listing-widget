@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.2
+ Version: 1.2.1
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  Text Domain: events-listing-widget
@@ -91,13 +91,14 @@ class events_listing_widget extends WP_Widget {
 
 		if ( preg_match( '/<!--more(.*?)?-->/', $content, $matches ) ) {
 			$content = explode( $matches[0], $content, 2 );
+			$content = do_shortcode( $content );
 			if ( ! empty( $matches[1] ) && ! empty( $more_link_text ) ) {
 				$more_link_text = strip_tags( wp_kses_no_null( trim( $matches[1] ) ) );
 			}
 
 			$hasTeaser = true;
 		} else {
-			$content = array( $content );
+			$content = array( do_shortcode( $content ) );
 		}
 
 		foreach ( $content as $contentelement ) {
@@ -155,10 +156,11 @@ class events_listing_widget extends WP_Widget {
 				break;
 		}
 
-		$query = "SELECT *, DATE(FROM_UNIXTIME(wpostmetadate.meta_value)) as formatted_date, wpostmetadate.meta_value as event_date, wpostmetaurl.meta_value as event_url
-                                        FROM $wpdb->posts wposts LEFT JOIN $wpdb->postmeta wpostmetadate ON ( wposts.ID = wpostmetadate.post_id 
-                                        AND wpostmetadate.meta_key = 'events_listing_date') LEFT JOIN $wpdb->postmeta wpostmetaurl ON ( wposts.ID = wpostmetaurl.post_id 
-                                        AND wpostmetaurl.meta_key = 'events_listing_url' ) 
+		$query = "SELECT *, DATE(FROM_UNIXTIME(wpostmetadate.meta_value)) as formatted_date, wpostmetadate.meta_value as event_date, wpostmetaenddate.meta_value as event_end_date, wpostmetaurl.meta_value as event_url
+                                        FROM $wpdb->posts wposts
+                                        LEFT JOIN $wpdb->postmeta wpostmetadate ON ( wposts.ID = wpostmetadate.post_id AND wpostmetadate.meta_key = 'events_listing_date')
+                                        LEFT JOIN $wpdb->postmeta wpostmetaenddate ON ( wposts.ID = wpostmetaenddate.post_id AND wpostmetaenddate.meta_key = 'events_listing_end_date')
+                                        LEFT JOIN $wpdb->postmeta wpostmetaurl ON ( wposts.ID = wpostmetaurl.post_id AND wpostmetaurl.meta_key = 'events_listing_url' )
                                         WHERE wposts.post_type = 'events_listing' 
                                         AND wposts.post_status = 'publish' 
                                         AND FROM_UNIXTIME(wpostmetadate.meta_value) < '" . date( 'Y-m-d', strtotime( $widget_lookahead . 'months' ) ) . "'
@@ -184,7 +186,11 @@ class events_listing_widget extends WP_Widget {
 			// Cycle through all items retrieved
 			foreach ( $events as $event ) {
 
-				if ( $event['event_date'] >= $site_date ) {
+				if ( empty( $event['event_end_date'] ) ) {
+					$event['event_end_date'] = $event['event_date'];
+				}
+
+				if ( $event['event_date'] >= $site_date || $event['event_end_date'] >= $site_date ) {
 					echo '<div class="events-listing">';
 					echo '<div class="events-listing-title">';
 					if ( $options['event_title_hyperlinks'] ) {
@@ -263,11 +269,12 @@ function my_events_listing_post_type_init() {
 	register_post_type( 'events_listing', $options );
 
 	add_shortcode( 'events-listing-date', 'events_listing_event_date_shortcode' );
+	add_shortcode( 'events-listing-end-date', 'events_listing_event_date_shortcode' );
 	add_shortcode( 'events-listing-name', 'events_listing_event_name_shortcode' );
 	add_shortcode( 'events-listing-url', 'events_listing_event_url_shortcode' );
 }
 
-function events_listing_event_date_shortcode() {
+function events_listing_event_date_shortcode( $atts, $content, $code ) {
 
 	$options = get_option( 'events_listing_Options' );
 
@@ -282,7 +289,13 @@ function events_listing_event_date_shortcode() {
 			$phpformatstring = 'm-d-Y';
 	}
 
-	return date( $phpformatstring, intval( get_post_meta( get_the_ID(), 'events_listing_date', true ) ) );
+	if ( $code == 'events-listing-date' ) {
+		$meta_name = 'events_listing_date';
+	} elseif ( $code == 'events-listing-end-date' ) {
+		$meta_name = 'events_listing_end_date';
+	}
+
+	return date( $phpformatstring, intval( get_post_meta( get_the_ID(), $meta_name, true ) ) );
 }
 
 function events_listing_event_name_shortcode() {
@@ -321,17 +334,24 @@ function events_listing_display_meta_box( $event_listing ) {
 	}
 
 	// Retrieve current author and rating based on book review ID
-	$eventdate = date( $phpformatstring, intval( get_post_meta( $event_listing->ID, 'events_listing_date', true ) ) );
-	if ( empty( $eventdate ) ) {
-		$eventdate = date( $phpformatstring );
-	}
+	$events_listing_date = intval( get_post_meta( $event_listing->ID, 'events_listing_date', true ) );
+	$eventdate = date( $phpformatstring, ( !empty( $events_listing_date ) ? intval( get_post_meta( $event_listing->ID, 'events_listing_date', true ) ) : time() ) );
+	$events_listing_end_date = intval( get_post_meta( $event_listing->ID, 'events_listing_end_date', true ) );
+	$eventenddate = date( $phpformatstring, ( !empty( $events_listing_end_date ) ? intval( get_post_meta( $event_listing->ID, 'events_listing_end_date', true ) ) : time() ) );
+
 	$eventurl = esc_html( get_post_meta( $event_listing->ID, 'events_listing_url', true ) );
 	?>
 	<table>
 		<tr>
-			<td style="width: 100px"><?php _e( 'Event Date', 'events-listing-widget' ); ?></td>
+			<td style="width: 100px"><?php _e( 'Event Start Date', 'events-listing-widget' ); ?></td>
 			<td>
 				<input type='text' size='20' id='events_listing_date' name='events_listing_date' value='<?php echo $eventdate; ?>' />
+			</td>
+		</tr>
+		<tr>
+			<td style="width: 100px"><?php _e( 'Event End Date', 'events-listing-widget' ); ?></td>
+			<td>
+				<input type='text' size='20' id='events_listing_end_date' name='events_listing_end_date' value='<?php echo $eventenddate; ?>' />
 			</td>
 		</tr>
 		<tr>
@@ -345,12 +365,17 @@ function events_listing_display_meta_box( $event_listing ) {
 	<script type='text/javascript'>
 		jQuery(document).ready(function () {
 			jQuery('#events_listing_date').datepicker({
-				minDate       : '+0',
 				dateFormat    : '<?php echo $datepickerformatstring; ?>',
 				showOn        : 'both',
 				constrainInput: true,
 				buttonImage   : '<?php echo plugins_url("/images/calendar.png", __FILE__); ?>'
-			})
+			});
+			jQuery('#events_listing_end_date').datepicker({
+				dateFormat    : '<?php echo $datepickerformatstring; ?>',
+				showOn        : 'both',
+				constrainInput: true,
+				buttonImage   : '<?php echo plugins_url("/images/calendar.png", __FILE__); ?>'
+			});
 		});
 	</script>
 <?php
@@ -373,26 +398,78 @@ function save_events_listing_fields( $ID = false, $event_listing = false ) {
 
 		switch ( $options['date_format'] ) {
 			case 'YYYY-MM-DD':
-				$datearray = explode( '-', $_POST['events_listing_date'] );
-				$year      = $datearray[0];
-				$month     = $datearray[1];
-				$day       = $datearray[2];
+				if ( !empty( $_POST['events_listing_date'] ) ) {
+					$datearray = explode( '-', $_POST['events_listing_date'] );
+					$year      = $datearray[0];
+					$month     = $datearray[1];
+					$day       = $datearray[2];
+				} else {
+					$year = date( 'Y', current_time( 'timestamp' ) );
+					$month = date( 'n', current_time( 'timestamp' ) );
+					$day = date( 'j', current_time( 'timestamp' ) );
+				}
+
+				if ( !empty( $_POST['events_listing_end_date'] ) ) {
+					$enddatearray = explode( '-', $_POST['events_listing_end_date'] );
+					$endyear      = $enddatearray[0];
+					$endmonth     = $enddatearray[1];
+					$endday       = $enddatearray[2];
+				} else {
+					$endyear = date( 'Y', current_time( 'timestamp' ) );
+					$endmonth = date( 'n', current_time( 'timestamp' ) );
+					$endday = date( 'j', current_time( 'timestamp' ) );
+				}
 				break;
 			case 'DD/MM/YYYY':
-				$datearray = explode( '/', $_POST['events_listing_date'] );
-				$year      = $datearray[2];
-				$month     = $datearray[1];
-				$day       = $datearray[0];
+				if ( !empty( $_POST['events_listing_date'] ) ) {
+					$datearray = explode( '/', $_POST['events_listing_date'] );
+					$year      = $datearray[2];
+					$month     = $datearray[1];
+					$day       = $datearray[0];
+				} else {
+					$year = date( 'Y', current_time( 'timestamp' ) );
+					$month = date( 'n', current_time( 'timestamp' ) );
+					$day = date( 'j', current_time( 'timestamp' ) );
+				}
+
+				if ( !empty( $_POST['events_listing_end_date'] ) ) {
+					$enddatearray = explode( '/', $_POST['events_listing_end_date'] );
+					$endyear      = $enddatearray[2];
+					$endmonth     = $enddatearray[1];
+					$endday       = $enddatearray[0];
+				} else {
+					$endyear = date( 'Y', current_time( 'timestamp' ) );
+					$endmonth = date( 'n', current_time( 'timestamp' ) );
+					$endday = date( 'j', current_time( 'timestamp' ) );
+				}
 				break;
 			case 'MM-DD-YYYY':
-				$datearray = explode( '-', $_POST['events_listing_date'] );
-				$year      = $datearray[2];
-				$month     = $datearray[0];
-				$day       = $datearray[1];
+				if ( !empty( $_POST['events_listing_date'] ) ) {
+					$datearray = explode( '-', $_POST['events_listing_date'] );
+					$year      = $datearray[2];
+					$month     = $datearray[0];
+					$day       = $datearray[1];
+				} else {
+					$year = date( 'Y', current_time( 'timestamp' ) );
+					$month = date( 'n', current_time( 'timestamp' ) );
+					$day = date( 'j', current_time( 'timestamp' ) );
+				}
+
+				if ( !empty( $_POST['events_listing_end_date'] ) ) {
+					$enddatearray = explode( '-', $_POST['events_listing_end_date'] );
+					$endyear      = $enddatearray[2];
+					$endmonth     = $enddatearray[0];
+					$endday       = $enddatearray[1];
+				} else {
+					$year = date( 'Y', current_time( 'timestamp' ) );
+					$month = date( 'n', current_time( 'timestamp' ) );
+					$day = date( 'j', current_time( 'timestamp' ) );
+				}
 				break;
 		}
 
 		$timetostore = gmmktime( 0, 0, 0, $month, $day, $year );
+		$endtimetostore = gmmktime( 0, 0, 0, $endmonth, $endday, $endyear );
 
 		// Check post type for book reviews
 		// Store data in post meta table if present in post data
@@ -401,6 +478,13 @@ function save_events_listing_fields( $ID = false, $event_listing = false ) {
 			update_post_meta( $ID, 'events_listing_date', $timetostore );
 		} else {
 			update_post_meta( $ID, 'events_listing_date', strtotime( 'now' ) );
+		}
+
+		if ( isset( $_POST['events_listing_end_date'] ) && $_POST['events_listing_end_date'] != '' && ! empty( $endtimetostore ) ) {
+			$swapslashes = str_replace( '/', '-', $_POST['events_listing_end_date'] );
+			update_post_meta( $ID, 'events_listing_end_date', $endtimetostore );
+		} else {
+			update_post_meta( $ID, 'events_listing_end_date', strtotime( 'now' ) );
 		}
 
 		if ( ! empty( $_POST['events_listing_url'] ) ) {
@@ -453,7 +537,8 @@ function events_listing_populate_columns( $column ) {
 	}
 
 	// Check column name and send back appropriate data
-	if ( 'events_listing_date' == $column ) {
+	$events_listing_date = get_post_meta( get_the_ID(), 'events_listing_date', true );
+	if ( 'events_listing_date' == $column && !empty( $events_listing_date ) ) {
 		$events_listing_date = esc_html( get_post_meta( get_the_ID(), 'events_listing_date', true ) );
 		echo date( $phpformatstring, $events_listing_date );
 	}
