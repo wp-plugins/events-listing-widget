@@ -1,0 +1,133 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Events Listing Widget\n"
+"POT-Creation-Date: 2014-10-18 13:47-0500\n"
+"PO-Revision-Date: 2014-10-18 13:48-0500\n"
+"Last-Translator: \n"
+"Language-Team: Yannick Lefebvre <ylefebvre@gmail.com>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.6.9\n"
+"X-Poedit-Basepath: .\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e\n"
+"X-Poedit-SearchPath-0: ..\n"
+
+#: ../events-listing-widget.php:30
+msgid "Displays upcoming events listing in a widget"
+msgstr ""
+
+#: ../events-listing-widget.php:31 ../events-listing-widget.php:230
+msgid "Events Listing"
+msgstr ""
+
+#: ../events-listing-widget.php:42
+msgid "Widget Title"
+msgstr ""
+
+#: ../events-listing-widget.php:48
+msgid "Number of months to display"
+msgstr ""
+
+#: ../events-listing-widget.php:54
+msgid "Number of items to display"
+msgstr ""
+
+#: ../events-listing-widget.php:60
+msgid "More text label"
+msgstr ""
+
+#: ../events-listing-widget.php:85
+msgid "(more...)"
+msgstr ""
+
+#: ../events-listing-widget.php:231
+msgid "Event"
+msgstr ""
+
+#: ../events-listing-widget.php:232
+msgid "Events"
+msgstr ""
+
+#: ../events-listing-widget.php:233 ../events-listing-widget.php:234
+msgid "Add New Event"
+msgstr ""
+
+#: ../events-listing-widget.php:235
+msgid "Edit Event"
+msgstr ""
+
+#: ../events-listing-widget.php:236
+msgid "New Event"
+msgstr ""
+
+#: ../events-listing-widget.php:237
+msgid "View Event"
+msgstr ""
+
+#: ../events-listing-widget.php:238
+msgid "Search Events"
+msgstr ""
+
+#: ../events-listing-widget.php:239
+msgid "No Event Found"
+msgstr ""
+
+#: ../events-listing-widget.php:240
+msgid "No Events found in Trash"
+msgstr ""
+
+#: ../events-listing-widget.php:301
+msgid "Event Details"
+msgstr ""
+
+#: ../events-listing-widget.php:331 ../events-listing-widget.php:426
+msgid "Event Date"
+msgstr ""
+
+#: ../events-listing-widget.php:337
+msgid "Event URL"
+msgstr ""
+
+#: ../events-listing-widget.php:523 ../events-listing-widget.php:545
+msgid "Events Listing Widget Configuration"
+msgstr ""
+
+#: ../events-listing-widget.php:523
+msgid "Events Listing Widget"
+msgstr ""
+
+#: ../events-listing-widget.php:536
+msgid "General Settings"
+msgstr ""
+
+#: ../events-listing-widget.php:561
+msgid "Submit"
+msgstr ""
+
+#: ../events-listing-widget.php:588
+msgid "Date Format"
+msgstr ""
+
+#: ../events-listing-widget.php:599
+msgid "Before Date"
+msgstr ""
+
+#: ../events-listing-widget.php:605
+msgid "After Date"
+msgstr ""
+
+#: ../events-listing-widget.php:611
+msgid "Make event titles clickable"
+msgstr ""
+
+#: ../events-listing-widget.php:624
+msgid "Not allowed"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "Creates a new post type to manage events and a widget to display them chronologically"
+msgstr ""

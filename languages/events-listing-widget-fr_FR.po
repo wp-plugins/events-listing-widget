@@ -1,0 +1,135 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: events-listing-widget\n"
+"POT-Creation-Date: 2014-10-18 13:47-0500\n"
+"PO-Revision-Date: 2014-10-18 14:04-0500\n"
+"Last-Translator: \n"
+"Language-Team: Yannick Lefebvre <ylefebvre@gmail.com>\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.6.9\n"
+"X-Poedit-Basepath: .\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+
+#: ../events-listing-widget.php:30
+msgid "Displays upcoming events listing in a widget"
+msgstr "Affiche les prochains évènements dans un widget"
+
+#: ../events-listing-widget.php:31 ../events-listing-widget.php:230
+msgid "Events Listing"
+msgstr "Liste des évènements"
+
+#: ../events-listing-widget.php:42
+msgid "Widget Title"
+msgstr "Titre du widget"
+
+#: ../events-listing-widget.php:48
+msgid "Number of months to display"
+msgstr "Nombre de mois à afficher"
+
+#: ../events-listing-widget.php:54
+msgid "Number of items to display"
+msgstr "Nombre d'items à afficher"
+
+#: ../events-listing-widget.php:60
+msgid "More text label"
+msgstr "Texte de continuation d'article"
+
+#: ../events-listing-widget.php:85
+msgid "(more...)"
+msgstr "(lire plus...)"
+
+#: ../events-listing-widget.php:231
+msgid "Event"
+msgstr "Évènement"
+
+#: ../events-listing-widget.php:232
+msgid "Events"
+msgstr "Évènements"
+
+#: ../events-listing-widget.php:233 ../events-listing-widget.php:234
+msgid "Add New Event"
+msgstr "Ajouter nouvel évèmement"
+
+#: ../events-listing-widget.php:235
+msgid "Edit Event"
+msgstr "Éditer évènement"
+
+#: ../events-listing-widget.php:236
+msgid "New Event"
+msgstr "Nouvel évènement"
+
+#: ../events-listing-widget.php:237
+msgid "View Event"
+msgstr "Voir évènement"
+
+#: ../events-listing-widget.php:238
+msgid "Search Events"
+msgstr "Chercher parmi les évènements"
+
+#: ../events-listing-widget.php:239
+msgid "No Event Found"
+msgstr "Aucun évènement trouvé"
+
+#: ../events-listing-widget.php:240
+msgid "No Events found in Trash"
+msgstr "Aucun évènements trouvés dans la corbeille"
+
+#: ../events-listing-widget.php:301
+msgid "Event Details"
+msgstr "Détails de l'évènement"
+
+#: ../events-listing-widget.php:331 ../events-listing-widget.php:426
+msgid "Event Date"
+msgstr "Date de l'évènement"
+
+#: ../events-listing-widget.php:337
+msgid "Event URL"
+msgstr "Adresse web de l'évènement"
+
+#: ../events-listing-widget.php:523 ../events-listing-widget.php:545
+msgid "Events Listing Widget Configuration"
+msgstr "Configuration du widget Events Listing"
+
+#: ../events-listing-widget.php:523
+msgid "Events Listing Widget"
+msgstr "Widget pour liste d'évènements"
+
+#: ../events-listing-widget.php:536
+msgid "General Settings"
+msgstr "Configuration générale"
+
+#: ../events-listing-widget.php:561
+msgid "Submit"
+msgstr "Soumettre"
+
+#: ../events-listing-widget.php:588
+msgid "Date Format"
+msgstr "Format de la date"
+
+#: ../events-listing-widget.php:599
+msgid "Before Date"
+msgstr "Avant la date"
+
+#: ../events-listing-widget.php:605
+msgid "After Date"
+msgstr "Après la date"
+
+#: ../events-listing-widget.php:611
+msgid "Make event titles clickable"
+msgstr "Rendre les titres d'évènement cliquables"
+
+#: ../events-listing-widget.php:624
+msgid "Not allowed"
+msgstr "Interdit"
+
+#. Description of the plugin/theme
+msgid ""
+"Creates a new post type to manage events and a widget to display them "
+"chronologically"
+msgstr ""
+"Crée un nouveau type de contenu pour gérer des évènement et un widget pour "
+"les afficher en ordre chronologique"
