@@ -24,6 +24,10 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2.2 =
+* Added support for dd.mm.yyyy date format
+* Re-worked widget rendering algorithm to use WP_Query instead of custom SQL query
+
 = 1.2.1 =
 * Added new field to specify end date on events
 * Modified event display code to display event until end date has passed
