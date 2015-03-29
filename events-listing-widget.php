@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.2.2
+ Version: 1.2.3
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  Text Domain: events-listing-widget
@@ -161,6 +161,10 @@ class events_listing_widget extends WP_Widget {
 
 		$args = array(
 			'post_type' => 'events_listing',
+			'order' => 'ASC',
+			'orderby' => 'meta_value',
+			'meta_key' => 'events_listing_date',
+			'meta_type' => 'NUMERIC',
 			'meta_query' => array(
 				'relation' => 'OR',
 				array(

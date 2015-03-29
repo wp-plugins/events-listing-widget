@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2.3 =
+* Fixed issue with events not always appearing in chronological order
+
 = 1.2.2 =
 * Added support for dd.mm.yyyy date format
 * Re-worked widget rendering algorithm to use WP_Query instead of custom SQL query
