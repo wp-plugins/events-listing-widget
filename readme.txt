@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2.4 =
+* Fixed bug with event URL not appearing when choosing for event titles to be hyperlinked. Bug introduced in version 1.2.2
+
 = 1.2.3 =
 * Fixed issue with events not always appearing in chronological order
 
