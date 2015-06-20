@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://yannickcorner.nayanna.biz/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.2.4
+ Version: 1.2.5
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  Text Domain: events-listing-widget
@@ -353,9 +353,11 @@ function events_listing_display_meta_box( $event_listing ) {
 		case 'MM-DD-YYYY':
 			$phpformatstring        = 'm-d-Y';
 			$datepickerformatstring = 'mm-dd-yy';
+			break;
 		case 'DD.MM.YYYY':
 			$phpformatstring        = 'd.m.Y';
 			$datepickerformatstring = 'dd.mm.yy';
+			break;
 	}
 
 	// Retrieve current author and rating based on book review ID
