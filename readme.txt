@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2.6 =
+* Fix for number of items to be displayed by widget. Was previously ignoring widget configuration and using number of posts in reading section.
+
 = 1.2.5 =
 * Fix for some of the date formats that were not working correctly in admin interface
 

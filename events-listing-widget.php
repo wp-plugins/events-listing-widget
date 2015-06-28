@@ -165,6 +165,7 @@ class events_listing_widget extends WP_Widget {
 			'orderby' => 'meta_value',
 			'meta_key' => 'events_listing_date',
 			'meta_type' => 'NUMERIC',
+			'posts_per_page' => $widget_display_count,
 			'meta_query' => array(
 				'relation' => 'OR',
 				array(
@@ -227,13 +228,6 @@ class events_listing_widget extends WP_Widget {
 				echo '<div class="events-listing-date">' . $options['before_date'] . date( $phpformatstring, get_post_meta( get_the_ID(), 'events_listing_date', true ) ) . $options['after_date'] . '</div>';
 				echo '<div class="events-listing-content">' . $this->prepare_the_content( get_the_content(), get_the_ID(), $widget_more_label ) . '</div>';
 				echo '</div>';
-
-				if ( ! empty( $widget_display_count ) ) {
-					$counter ++;
-					if ( $counter == $widget_display_count ) {
-						break;
-					}
-				}
 			}
 			echo '</ul>';
 		}
