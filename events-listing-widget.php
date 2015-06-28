@@ -165,7 +165,7 @@ class events_listing_widget extends WP_Widget {
 			'orderby' => 'meta_value',
 			'meta_key' => 'events_listing_date',
 			'meta_type' => 'NUMERIC',
-			'posts_per_page' => $widget_display_count,
+			'posts_per_page' => intval( $widget_display_count ),
 			'meta_query' => array(
 				'relation' => 'OR',
 				array(
