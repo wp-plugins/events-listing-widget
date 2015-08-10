@@ -24,6 +24,9 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.2.8 =
+* Removed unnecessary ul closing tag
+
 = 1.2.7 =
 * Fix to be able to see youtube embeds in event description in widget
 

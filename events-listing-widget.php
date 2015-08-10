@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://ylefebvre.ca/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.2.7
+ Version: 1.2.8
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  Text Domain: events-listing-widget
@@ -231,7 +231,6 @@ class events_listing_widget extends WP_Widget {
 				echo '<div class="events-listing-content">' . $this->prepare_the_content( get_the_content(), get_the_ID(), $widget_more_label ) . '</div>';
 				echo '</div>';
 			}
-			echo '</ul>';
 		}
 
 		/* Restore original Post Data */
