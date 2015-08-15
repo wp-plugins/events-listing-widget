@@ -3,7 +3,7 @@
  Plugin Name: Events Listing Widget
  Plugin URI: http://ylefebvre.ca/wordpress-plugins/events-listing-widget
  Description: Creates a new post type to manage events and a widget to display them chronologically
- Version: 1.2.8
+ Version: 1.3
  Author: Yannick Lefebvre	
  Author URI: http://ylefebvre.ca
  Text Domain: events-listing-widget
@@ -144,7 +144,16 @@ class events_listing_widget extends WP_Widget {
 
 		global $wpdb;
 
+		$events_listing_fix_featured = get_option( 'events_listing_fix_featured' );
+		if ( $events_listing_fix_featured === false ) {
+			events_listing_fix_featured();
+			update_option( 'events_listing_fix_featured', 'fixed' );
+		}
+
 		$options = get_option( 'events_listing_Options' );
+		$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
+
+		$phpformatstring = 'Y-m-d';
 
 		switch ( $options['date_format'] ) {
 			case 'YYYY-MM-DD':
@@ -159,86 +168,141 @@ class events_listing_widget extends WP_Widget {
 			case 'DD.MM.YYYY':
 				$phpformatstring = 'd.m.Y';
 				break;
+			case 'WP':
+				$wp_date_format = get_option('date_format');
+				if ( !empty( $wp_date_format ) ) {
+					$phpformatstring = get_option('date_format');
+				}
+				break;
+			case 'custom':
+				if ( !empty( $options['custom_date_format'] ) ) {
+					$phpformatstring = $options['custom_date_format'];
+				}
+				break;
 		}
 
-		$args = array(
-			'post_type' => 'events_listing',
-			'order' => 'ASC',
-			'orderby' => 'meta_value',
-			'meta_key' => 'events_listing_date',
-			'meta_type' => 'NUMERIC',
-			'posts_per_page' => intval( $widget_display_count ),
-			'meta_query' => array(
-				'relation' => 'OR',
-				array(
-					'relation' => 'AND',
-					array(
-						'key' => 'events_listing_date',
-						'value' => current_time( 'timestamp' ),
-						'compare' => '>='
-					),
-					array(
-						'key' => 'events_listing_date',
-						'value' => strtotime('+' . $widget_lookahead . ' month', current_time( 'timestamp' ) ),
-						'compare' => '<='
-					)
-				),
-				array(
-					'relation' => 'AND',
-					array(
-						'key' => 'events_listing_date',
-						'value' => current_time( 'timestamp' ),
-						'compare' => '<='
-					),
-					array(
-						'key' => 'events_listing_end_date',
-						'compare' => 'EXISTS'
-					),
-					array(
-						'key' => 'events_listing_end_date',
-						'value' => current_time( 'timestamp' ),
-						'compare' => '>='
-					)
-				),
+		$first_meta_array = array(
+			'relation' => 'AND',
+			array(
+				'key' => 'events_listing_date',
+				'value' => current_time( 'timestamp' ),
+				'compare' => '>='
+			),
+			array(
+				'key' => 'events_listing_date',
+				'value' => strtotime('+' . $widget_lookahead . ' month', current_time( 'timestamp' ) ),
+				'compare' => '<='
+			),
+			array(
+				'key' => 'events_listing_featured',
+				'value' => 'featured',
+				'compare' => '='
 			)
-
 		);
-		$event_query = new WP_Query( $args );
 
-		// The Loop
-		if ( $event_query->have_posts() ) {
-			$counter = 0;
-			while ( $event_query->have_posts() ) {
-				$event_query->the_post();
-				echo '<div class="events-listing">';
-				echo '<div class="events-listing-title">';
-				if ( $options['event_title_hyperlinks'] ) {
-					echo '<a href="';
-					$event_listing_url = get_post_meta( get_the_ID(), 'events_listing_url', true );
-					if ( ! empty( $event_listing_url ) ) {
-						echo $event_listing_url;
-					} else {
-						echo get_the_permalink( get_the_ID() );
-					}
-					echo '" target="_blank" >';
-				}
-				echo get_the_title( get_the_ID() );
-				if ( $options['event_title_hyperlinks'] ) {
-					echo '</a>';
-				}
-				echo '</div>';
-				echo '<div class="events-listing-date">' . $options['before_date'] . date( $phpformatstring, get_post_meta( get_the_ID(), 'events_listing_date', true ) ) . $options['after_date'] . '</div>';
-				echo '<div class="events-listing-content">' . $this->prepare_the_content( get_the_content(), get_the_ID(), $widget_more_label ) . '</div>';
-				echo '</div>';
+		$second_meta_array = array(
+			'relation' => 'AND',
+			array(
+				'key' => 'events_listing_date',
+				'value' => current_time( 'timestamp' ),
+				'compare' => '<='
+			),
+			array(
+				'key' => 'events_listing_end_date',
+				'compare' => 'EXISTS'
+			),
+			array(
+				'key' => 'events_listing_end_date',
+				'value' => current_time( 'timestamp' ),
+				'compare' => '>='
+			),
+			array(
+				'key' => 'events_listing_featured',
+				'value' => 'featured',
+				'compare' => '='
+			)
+		);
+
+		$featured_pass = 1;
+
+		for ( $event_pass = 1; $event_pass <= 2; $event_pass++ ) {
+			if ( $featured_pass != 1 ) {
+				$first_meta_array[2]['value'] = 'normal';
+				$second_meta_array[3]['value'] = 'normal';
 			}
-		}
 
-		/* Restore original Post Data */
-		wp_reset_postdata();
+			$args = array(
+				'post_type' => 'events_listing',
+				'order' => 'ASC',
+				'orderby' => 'meta_value',
+				'meta_key' => 'events_listing_date',
+				'meta_type' => 'NUMERIC',
+				'posts_per_page' => intval( $widget_display_count ),
+				'meta_query' => array(
+					'relation' => 'OR',
+					$first_meta_array,
+					$second_meta_array,
+				)
+			);
+
+			$event_query = new WP_Query( $args );
+
+			// The Loop
+			if ( $event_query->have_posts() ) {
+				$counter = 0;
+				while ( $event_query->have_posts() ) {
+					$event_query->the_post();
+					echo '<div class="events-listing">';
+					echo '<div class="events-listing-title">';
+					if ( $options['event_title_hyperlinks'] ) {
+						echo '<a href="';
+						$event_listing_url = get_post_meta( get_the_ID(), 'events_listing_url', true );
+						if ( ! empty( $event_listing_url ) ) {
+							echo $event_listing_url;
+						} else {
+							echo get_the_permalink( get_the_ID() );
+						}
+						echo '" target="_blank" >';
+					}
+					echo get_the_title( get_the_ID() );
+					if ( $options['event_title_hyperlinks'] ) {
+						echo '</a>';
+					}
+					echo '</div>';
+					echo '<div class="events-listing-date">' . $options['before_date'] . date( $phpformatstring, get_post_meta( get_the_ID(), 'events_listing_date', true ) ) . $options['after_date'] . '</div>';
+					echo '<div class="events-listing-content">' . $this->prepare_the_content( get_the_content(), get_the_ID(), $widget_more_label ) . '</div>';
+					echo '</div>';
+				}
+			}
+
+			/* Restore original Post Data */
+			wp_reset_postdata();
+
+			$featured_pass = 0;
+		}
 
 		echo $after_widget;
 	}
+}
 
+function events_listing_fix_featured() {
+	$args = array(
+		'post_type' => 'events_listing'
+	);
+
+	$events_to_fix_query = new WP_Query( $args );
+
+	// The Loop
+	if ( $events_to_fix_query->have_posts() ) {
+		while ( $events_to_fix_query->have_posts() ) {
+			$events_to_fix_query->the_post();
+			$featured_event = get_post_meta( get_the_ID(), 'events_listing_featured', true );
+
+			if ( $featured_event == false ) {
+				update_post_meta( get_the_ID(), 'events_listing_featured', 'normal' );
+			}
+		}
+	}
 }
 
 // Create the Content Block custom post type
@@ -288,6 +352,7 @@ function my_events_listing_post_type_init() {
 function events_listing_event_date_shortcode( $atts, $content, $code ) {
 
 	$options = get_option( 'events_listing_Options' );
+	$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
 
 	switch ( $options['date_format'] ) {
 		case 'YYYY-MM-DD':
@@ -335,31 +400,14 @@ function events_listing_admin_init() {
 
 function events_listing_display_meta_box( $event_listing ) {
 	$options = get_option( 'events_listing_Options' );
-
-	switch ( $options['date_format'] ) {
-		case 'YYYY-MM-DD':
-			$phpformatstring        = 'Y-m-d';
-			$datepickerformatstring = 'yy-mm-dd';
-			break;
-		case 'DD/MM/YYYY':
-			$phpformatstring        = 'd/m/Y';
-			$datepickerformatstring = 'dd/mm/yy';
-			break;
-		case 'MM-DD-YYYY':
-			$phpformatstring        = 'm-d-Y';
-			$datepickerformatstring = 'mm-dd-yy';
-			break;
-		case 'DD.MM.YYYY':
-			$phpformatstring        = 'd.m.Y';
-			$datepickerformatstring = 'dd.mm.yy';
-			break;
-	}
+	$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
 
 	// Retrieve current author and rating based on book review ID
 	$events_listing_date = intval( get_post_meta( $event_listing->ID, 'events_listing_date', true ) );
-	$eventdate = date( $phpformatstring, ( !empty( $events_listing_date ) ? intval( get_post_meta( $event_listing->ID, 'events_listing_date', true ) ) : time() ) );
+	$eventdate = date( 'Y-m-d', ( !empty( $events_listing_date ) ? intval( get_post_meta( $event_listing->ID, 'events_listing_date', true ) ) : time() ) );
 	$events_listing_end_date = intval( get_post_meta( $event_listing->ID, 'events_listing_end_date', true ) );
-	$eventenddate = date( $phpformatstring, ( !empty( $events_listing_end_date ) ? intval( get_post_meta( $event_listing->ID, 'events_listing_end_date', true ) ) : time() ) );
+	$eventenddate = date( 'Y-m-d', ( !empty( $events_listing_end_date ) ? intval( get_post_meta( $event_listing->ID, 'events_listing_end_date', true ) ) : time() ) );
+	$featured_event = get_post_meta( $event_listing->ID, 'events_listing_featured', true );
 
 	$eventurl = esc_html( get_post_meta( $event_listing->ID, 'events_listing_url', true ) );
 	?>
@@ -382,18 +430,24 @@ function events_listing_display_meta_box( $event_listing ) {
 				<input type='text' size='60' id='events_listing_url' name='events_listing_url' value='<?php echo $eventurl; ?>' />
 			</td>
 		</tr>
+		<tr>
+			<td style="width: 100px"><?php _e( 'Featured Event', 'events-listing-widget' ); ?></td>
+			<td>
+				<input type='checkbox' size='60' id='events_listing_featured' name='events_listing_featured' <?php checked( $featured_event, 'featured' ); ?>' />
+			</td>
+		</tr>
 	</table>
 
 	<script type='text/javascript'>
 		jQuery(document).ready(function () {
 			jQuery('#events_listing_date').datepicker({
-				dateFormat    : '<?php echo $datepickerformatstring; ?>',
+				dateFormat    : '<?php echo 'yy-mm-dd'; ?>',
 				showOn        : 'both',
 				constrainInput: true,
 				buttonImage   : '<?php echo plugins_url("/images/calendar.png", __FILE__); ?>'
 			});
 			jQuery('#events_listing_end_date').datepicker({
-				dateFormat    : '<?php echo $datepickerformatstring; ?>',
+				dateFormat    : '<?php echo 'yy-mm-dd'; ?>',
 				showOn        : 'both',
 				constrainInput: true,
 				buttonImage   : '<?php echo plugins_url("/images/calendar.png", __FILE__); ?>'
@@ -417,39 +471,13 @@ add_action( 'save_post', 'save_events_listing_fields', 10, 2 );
 function save_events_listing_fields( $ID = false, $event_listing = false ) {
 	if ( isset( $_POST['post_title'] ) && $event_listing->post_type == 'events_listing' ) {
 		$options = get_option( 'events_listing_Options' );
-
-		switch ( $options['date_format'] ) {
-			case 'YYYY-MM-DD':
-				$divider = '-';
-				$year_pos = 0;
-				$month_pos = 1;
-				$day_pos = 2;
-				break;
-			case 'DD/MM/YYYY':
-				$divider = '/';
-				$year_pos = 2;
-				$month_pos = 1;
-				$day_pos = 0;
-				break;
-			case 'MM-DD-YYYY':
-				$divider = '-';
-				$year_pos = 2;
-				$month_pos = 0;
-				$day_pos = 1;
-				break;
-			case 'DD.MM.YYYY':
-				$divider = '.';
-				$year_pos = 2;
-				$month_pos = 1;
-				$day_pos = 0;
-				break;
-		}
+		$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
 
 		if ( !empty( $_POST['events_listing_date'] ) ) {
-			$datearray = explode( $divider, $_POST['events_listing_date'] );
-			$year      = $datearray[$year_pos];
-			$month     = $datearray[$month_pos];
-			$day       = $datearray[$day_pos];
+			$datearray = explode( '-', $_POST['events_listing_date'] );
+			$year      = $datearray[0];
+			$month     = $datearray[1];
+			$day       = $datearray[2];
 		} else {
 			$year = date( 'Y', current_time( 'timestamp' ) );
 			$month = date( 'n', current_time( 'timestamp' ) );
@@ -457,10 +485,10 @@ function save_events_listing_fields( $ID = false, $event_listing = false ) {
 		}
 
 		if ( !empty( $_POST['events_listing_end_date'] ) ) {
-			$enddatearray = explode( $divider, $_POST['events_listing_end_date'] );
-			$endyear      = $enddatearray[$year_pos];
-			$endmonth     = $enddatearray[$month_pos];
-			$endday       = $enddatearray[$day_pos];
+			$enddatearray = explode( '-', $_POST['events_listing_end_date'] );
+			$endyear      = $enddatearray[0];
+			$endmonth     = $enddatearray[1];
+			$endday       = $enddatearray[2];
 		} else {
 			$endyear = date( 'Y', current_time( 'timestamp' ) );
 			$endmonth = date( 'n', current_time( 'timestamp' ) );
@@ -473,14 +501,12 @@ function save_events_listing_fields( $ID = false, $event_listing = false ) {
 		// Check post type for book reviews
 		// Store data in post meta table if present in post data
 		if ( isset( $_POST['events_listing_date'] ) && $_POST['events_listing_date'] != '' && ! empty( $timetostore ) ) {
-			$swapslashes = str_replace( '/', '-', $_POST['events_listing_date'] );
 			update_post_meta( $ID, 'events_listing_date', $timetostore );
 		} else {
 			update_post_meta( $ID, 'events_listing_date', strtotime( 'now' ) );
 		}
 
 		if ( isset( $_POST['events_listing_end_date'] ) && $_POST['events_listing_end_date'] != '' && ! empty( $endtimetostore ) ) {
-			$swapslashes = str_replace( '/', '-', $_POST['events_listing_end_date'] );
 			update_post_meta( $ID, 'events_listing_end_date', $endtimetostore );
 		} else {
 			update_post_meta( $ID, 'events_listing_end_date', strtotime( 'now' ) );
@@ -488,6 +514,12 @@ function save_events_listing_fields( $ID = false, $event_listing = false ) {
 
 		if ( ! empty( $_POST['events_listing_url'] ) ) {
 			update_post_meta( $ID, 'events_listing_url', $_POST['events_listing_url'] );
+		}
+
+		if ( isset( $_POST['events_listing_featured'] ) ) {
+			update_post_meta( $ID, 'events_listing_featured', 'featured' );
+		} else {
+			update_post_meta( $ID, 'events_listing_featured', 'normal' );
 		}
 	}
 }
@@ -522,27 +554,13 @@ function events_listing_populate_columns( $column ) {
 	global $post;
 
 	$options = get_option( 'events_listing_Options' );
-
-	switch ( $options['date_format'] ) {
-		case 'YYYY-MM-DD':
-			$phpformatstring = 'Y-m-d';
-			break;
-		case 'DD/MM/YYYY':
-			$phpformatstring = 'd/m/Y';
-			break;
-		case 'MM-DD-YYYY':
-			$phpformatstring = 'm-d-Y';
-			break;
-		case 'DD.MM.YYYY':
-			$phpformatstring = 'd.m.Y';
-			break;
-	}
+	$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
 
 	// Check column name and send back appropriate data
 	$events_listing_date = get_post_meta( get_the_ID(), 'events_listing_date', true );
 	if ( 'events_listing_date' == $column && !empty( $events_listing_date ) ) {
 		$events_listing_date = esc_html( get_post_meta( get_the_ID(), 'events_listing_date', true ) );
-		echo date( $phpformatstring, $events_listing_date );
+		echo date( 'Y-m-d', $events_listing_date );
 	}
 }
 
@@ -573,15 +591,25 @@ function events_listing_column_ordering( $vars ) {
 
 global $optionspage;
 
+function events_listing_widget_default_config( $setoptions = 'return' ) {
+	$options['date_format'] = 'YYYY-MM-DD';
+	$options['custom_date_format'] = 'Y-m-d';
+	$options['before_date'] = '';
+	$options['after_date'] = '';
+	$options['event_title_hyperlinks'] = true;
+
+	if ( 'return_and_set' == $setoptions ) {
+		update_option( 'events_listing_Options', $options );
+	}
+
+	return $options;
+}
+
 register_activation_hook( __FILE__, 'events_listing_activation' );
 
 function events_listing_activation() {
 	if ( get_option( 'events_listing_Options' ) === false ) {
-		$NewOptions['date_format']            = 'YYYY-MM-DD';
-		$NewOptions['before_date']            = '';
-		$NewOptions['after_date']             = '';
-		$NewOptions['event_title_hyperlinks'] = true;
-		add_option( 'events_listing_Options', $NewOptions );
+		events_listing_widget_default_config( 'return_and_set' );
 
 		global $wpdb;
 
@@ -627,6 +655,8 @@ function events_listing_create_meta_boxes() {
 function events_listing_config_page() {
 	// Retrieve plugin configuration options from database
 	$options = get_option( 'events_listing_Options' );
+	$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
+
 	global $optionspage;
 	?>
 	<div id="events-listing-general" class="wrap">
@@ -675,13 +705,19 @@ function events_listing_plugin_meta_box( $options ) {
 		<tr>
 			<td style="width: 100px"><?php _e( 'Date Format', 'events-listing-widget' ); ?></td>
 			<td>
-				<?php $dateoptions = array( 'YYYY-MM-DD', 'DD/MM/YYYY', 'MM-DD-YYYY', 'DD.MM.YYYY' ); ?>
+				<?php $dateoptions = array( 'YYYY-MM-DD' => 'YYYY-MM-DD', 'DD/MM/YYYY' => 'DD/MM/YYYY', 'MM-DD-YYYY' => 'MM-DD-YYYY', 'DD.MM.YYYY' => 'DD.MM.YYYY', 'WP' => 'WordPress Date Format', 'custom' => 'Custom Date Format (enter below)' ); ?>
 				<select id="date_format" name="date_format">
-					<?php foreach ( $dateoptions as $dateoption ) { ?>
-						<option id="<?php echo $dateoption; ?>" <?php selected( $options['date_format'], $dateoption ); ?>><?php echo $dateoption; ?></option>
+					<?php foreach ( $dateoptions as $dateid => $dateoption ) { ?>
+						<option id="<?php echo $dateid; ?>" value="<?php echo $dateid; ?>" <?php selected( $options['date_format'], $dateid ); ?>><?php echo $dateoption; ?></option>
 					<?php } ?>
 				</select>
 				</label></td>
+		</tr>
+		<tr>
+			<td><?php _e( 'Custom Date Format (PHP Syntax)', 'events-listing-widget' ); ?></td>
+			<td>
+				<input type="text" size="30" id="custom_date_format" name="custom_date_format" value="<?php echo $options['custom_date_format']; ?>" />
+			</td>
 		</tr>
 		<tr>
 			<td><?php _e( 'Before Date', 'events-listing-widget' ); ?></td>
@@ -718,10 +754,11 @@ function process_events_listing_options() {
 
 	// Retrieve original plugin options array
 	$options = get_option( 'events_listing_Options' );
+	$options = wp_parse_args( $options, events_listing_widget_default_config( 'return' ) );
 
 	// Cycle through all text form fields and store their values
 	// in the options array
-	foreach ( array( 'date_format', 'before_date', 'after_date' ) as $option_name ) {
+	foreach ( array( 'date_format', 'before_date', 'after_date', 'custom_date_format' ) as $option_name ) {
 		if ( isset( $_POST[ $option_name ] ) ) {
 			$options[ $option_name ] = $_POST[ $option_name ];
 		}

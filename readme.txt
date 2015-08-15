@@ -24,6 +24,11 @@ Create a list of upcoming events and display them using an easy-to-use widget
 
 == Changelog ==
 
+= 1.3 =
+* Added new options for date format (use WordPress date format or specify custom PHP formatting string)
+* Back-end date format for calendar picker is now always the same
+* Added featured flag to events to make them appear before others in list
+
 = 1.2.8 =
 * Removed unnecessary ul closing tag
 
