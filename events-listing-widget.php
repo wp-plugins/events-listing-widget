@@ -252,7 +252,12 @@ class events_listing_widget extends WP_Widget {
 				$counter = 0;
 				while ( $event_query->have_posts() ) {
 					$event_query->the_post();
-					echo '<div class="events-listing">';
+					echo '<div class="events-listing';
+					$event_featured = get_post_meta( get_the_ID(), 'events_listing_featured', true );
+					if ( 'featured' == $event_featured ) {
+						echo ' featured';
+					}
+					echo '">';
 					echo '<div class="events-listing-title">';
 					if ( $options['event_title_hyperlinks'] ) {
 						echo '<a href="';
